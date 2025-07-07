@@ -1,49 +1,131 @@
 // index.js
-const defaultAvatarUrl = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+const app = getApp()
 
 Page({
   data: {
-    motto: 'Hello World',
-    userInfo: {
-      avatarUrl: defaultAvatarUrl,
-      nickName: '',
-    },
+    userInfo: null,
+    userScore: 100,
     hasUserInfo: false,
-    canIUseGetUserProfile: wx.canIUse('getUserProfile'),
-    canIUseNicknameComp: wx.canIUse('input.type.nickname'),
+    uploadedImage: '',
+    analysisResult: null,
+    isAnalyzing: false
   },
-  bindViewTap() {
-    wx.navigateTo({
-      url: '../logs/logs'
-    })
+  
+  onLoad() {
+    // 获取用户信息
+    this.getUserInfo()
+    // 获取用户积分
+    this.getUserScore()
   },
-  onChooseAvatar(e) {
-    const { avatarUrl } = e.detail
-    const { nickName } = this.data.userInfo
+  
+  onShow() {
+    // 每次显示页面时更新积分
+    this.getUserScore()
+  },
+  
+  // 获取用户信息
+  getUserInfo() {
+    const userInfo = wx.getStorageSync('userInfo')
+    if (userInfo) {
+      this.setData({
+        userInfo: userInfo,
+        hasUserInfo: true
+      })
+    }
+  },
+  
+  // 获取用户积分
+  getUserScore() {
+    const userScore = wx.getStorageSync('userScore') || 100
     this.setData({
-      "userInfo.avatarUrl": avatarUrl,
-      hasUserInfo: nickName && avatarUrl && avatarUrl !== defaultAvatarUrl,
+      userScore: userScore
     })
   },
-  onInputChange(e) {
-    const nickName = e.detail.value
-    const { avatarUrl } = this.data.userInfo
-    this.setData({
-      "userInfo.nickName": nickName,
-      hasUserInfo: nickName && avatarUrl && avatarUrl !== defaultAvatarUrl,
+  
+  // 登录获取用户信息
+  login() {
+    app.getUserInfo((userInfo) => {
+      this.setData({
+        userInfo: userInfo,
+        hasUserInfo: true
+      })
     })
   },
-  getUserProfile(e) {
-    // 推荐使用wx.getUserProfile获取用户信息，开发者每次通过该接口获取用户个人信息均需用户确认，开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
-    wx.getUserProfile({
-      desc: '展示用户信息', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
+  
+  // 拍照上传
+  takePhoto() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      maxDuration: 30,
+      camera: 'back',
       success: (res) => {
-        console.log(res)
+        const tempFilePath = res.tempFiles[0].tempFilePath
         this.setData({
-          userInfo: res.userInfo,
-          hasUserInfo: true
+          uploadedImage: tempFilePath
+        })
+        // 模拟上传和分析
+        this.analyzeImage(tempFilePath)
+      },
+      fail: (err) => {
+        console.error('选择图片失败:', err)
+        wx.showToast({
+          title: '选择图片失败',
+          icon: 'error'
         })
       }
     })
   },
+  
+  // 模拟分析图片
+  analyzeImage(imagePath) {
+    this.setData({
+      isAnalyzing: true,
+      analysisResult: null
+    })
+    
+    wx.showLoading({
+      title: '分析中...'
+    })
+    
+    // 模拟后端分析过程
+    setTimeout(() => {
+      // 模拟分析结果
+      const mockResults = [
+        {
+          type: '原参',
+          age: '3-5年',
+          confidence: '95.2%',
+          description: '这是一株品质优良的原参，参龄较为理想。'
+        },
+        {
+          type: '林下山参',
+          age: '8-12年',
+          confidence: '87.6%',
+          description: '这是一株珍贵的林下山参，年份较长，营养价值很高。'
+        }
+      ]
+      
+      const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)]
+      
+      this.setData({
+        isAnalyzing: false,
+        analysisResult: randomResult
+      })
+      
+      wx.hideLoading()
+      wx.showToast({
+        title: '分析完成',
+        icon: 'success'
+      })
+    }, 2000)
+  },
+  
+  // 重新分析
+  reAnalyze() {
+    if (this.data.uploadedImage) {
+      this.analyzeImage(this.data.uploadedImage)
+    }
+  }
 })

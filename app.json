@@ -1,12 +1,40 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/knowledge/knowledge",
+    "pages/forum/forum",
+    "pages/createPost/createPost",
     "pages/logs/logs"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
+    "navigationBarTitleText": "人参识别助手",
     "navigationBarBackgroundColor": "#ffffff"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#13A5F0",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "images/camera.png",
+        "selectedIconPath": "images/camera-active.png",
+        "text": "拍照上传"
+      },
+      {
+        "pagePath": "pages/knowledge/knowledge",
+        "iconPath": "images/knowledge.png",
+        "selectedIconPath": "images/knowledge-active.png",
+        "text": "人参知识"
+      },
+      {
+        "pagePath": "pages/forum/forum",
+        "iconPath": "images/forum.png",
+        "selectedIconPath": "images/forum-active.png",
+        "text": "用户论坛"
+      }
+    ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",

@@ -1,0 +1,38 @@
+<!--createPost.wxml-->
+<view class="container">
+  <view class="form-section">
+    <!-- 标题输入 -->
+    <view class="input-group">
+      <text class="input-label">标题</text>
+      <input class="title-input" placeholder="请输入帖子标题" 
+             bindinput="onTitleInput" value="{{title}}" maxlength="50"/>
+    </view>
+    
+    <!-- 内容输入 -->
+    <view class="input-group">
+      <text class="input-label">内容</text>
+      <textarea class="content-input" placeholder="分享你的人参知识或经验..." 
+                bindinput="onContentInput" value="{{content}}" maxlength="500"/>
+    </view>
+    
+    <!-- 图片上传 -->
+    <view class="input-group">
+      <text class="input-label">图片（最多9张）</text>
+      <view class="images-container">
+        <view wx:for="{{images}}" wx:key="*this" class="image-item">
+          <image class="preview-image" src="{{item}}" mode="aspectFill"/>
+          <view class="delete-btn" bindtap="deleteImage" data-index="{{index}}">×</view>
+        </view>
+        <view wx:if="{{images.length < 9}}" class="add-image-btn" bindtap="chooseImage">
+          <text class="add-icon">+</text>
+          <text class="add-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 发布按钮 -->
+  <view class="publish-section">
+    <button class="publish-btn" bindtap="publishPost">发布帖子 (+20积分)</button>
+  </view>
+</view>

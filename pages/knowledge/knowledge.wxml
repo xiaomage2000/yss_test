@@ -1,0 +1,20 @@
+<!--knowledge.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">人参知识百科</text>
+    <text class="subtitle">了解人参的种类、功效和使用方法</text>
+  </view>
+  
+  <view class="knowledge-list">
+    <view wx:for="{{knowledgeList}}" wx:key="id" class="knowledge-item">
+      <view class="knowledge-header" bindtap="toggleExpand" data-index="{{index}}">
+        <text class="knowledge-title">{{item.title}}</text>
+        <text class="expand-icon {{item.expanded ? 'expanded' : ''}}">▼</text>
+      </view>
+      
+      <view wx:if="{{item.expanded}}" class="knowledge-content">
+        <text class="content-text">{{item.content}}</text>
+      </view>
+    </view>
+  </view>
+</view>

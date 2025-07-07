@@ -1,62 +1,219 @@
 /**index.wxss**/
 page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
+  background-color: #f5f5f5;
 }
 
-.userinfo {
+.container {
+  padding: 20rpx;
+  min-height: 100vh;
+}
+
+/* 用户信息栏 */
+.user-header {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  color: #aaa;
-  width: 80%;
-}
-
-.userinfo-avatar {
-  overflow: hidden;
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
-}
-
-.usermotto {
-  margin-top: 200px;
-}
-
-.avatar-wrapper {
-  padding: 0;
-  width: 56px !important;
-  border-radius: 8px;
-  margin-top: 40px;
-  margin-bottom: 40px;
 }
 
 .avatar {
-  display: block;
-  width: 56px;
-  height: 56px;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
 }
 
-.nickname-wrapper {
+.user-details {
   display: flex;
+  flex-direction: column;
+}
+
+.nickname {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.score {
+  font-size: 28rpx;
+  color: #13A5F0;
+  font-weight: 500;
+}
+
+.login-section {
+  text-align: center;
+}
+
+.login-btn {
+  background: #13A5F0;
+  color: white;
+  border-radius: 50rpx;
+  padding: 20rpx 60rpx;
+  border: none;
+  font-size: 28rpx;
+}
+
+/* 上传区域 */
+.upload-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.upload-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 10rpx;
+}
+
+.upload-subtitle {
+  font-size: 24rpx;
+  color: #666;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.upload-area {
+  border: 4rpx dashed #ddd;
+  border-radius: 20rpx;
+  padding: 80rpx 40rpx;
+  text-align: center;
+  background: #fafafa;
+}
+
+.upload-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.upload-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.uploaded-image-container {
+  text-align: center;
+}
+
+.uploaded-image {
   width: 100%;
-  padding: 16px;
-  box-sizing: border-box;
-  border-top: .5px solid rgba(0, 0, 0, 0.1);
-  border-bottom: .5px solid rgba(0, 0, 0, 0.1);
-  color: black;
+  max-height: 400rpx;
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
 }
 
-.nickname-label {
-  width: 105px;
+.reupload-btn {
+  background: #fff;
+  color: #13A5F0;
+  border: 2rpx solid #13A5F0;
+  border-radius: 50rpx;
+  padding: 15rpx 40rpx;
+  font-size: 26rpx;
 }
 
-.nickname-input {
+/* 分析中状态 */
+.analyzing {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 60rpx;
+  text-align: center;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.loading-icon {
+  font-size: 60rpx;
+  margin-bottom: 20rpx;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 结果区域 */
+.result-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.result-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.result-card {
+  background: #f8f9fa;
+  border-radius: 15rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+}
+
+.result-item {
+  display: flex;
+  margin-bottom: 20rpx;
+  align-items: center;
+}
+
+.result-label {
+  font-size: 28rpx;
+  color: #666;
+  width: 180rpx;
+}
+
+.result-value {
+  font-size: 28rpx;
+  font-weight: bold;
   flex: 1;
+}
+
+.result-value.type {
+  color: #13A5F0;
+}
+
+.result-value.age {
+  color: #52C41A;
+}
+
+.result-value.confidence {
+  color: #FA8C16;
+}
+
+.result-description {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #eee;
+}
+
+.description-text {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.reanalyze-btn {
+  background: #13A5F0;
+  color: white;
+  border-radius: 50rpx;
+  padding: 20rpx;
+  width: 100%;
+  border: none;
+  font-size: 28rpx;
 }

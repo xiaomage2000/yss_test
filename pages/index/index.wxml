@@ -1,27 +1,63 @@
 <!--index.wxml-->
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
-        </view>
-      </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
+<view class="container">
+  <!-- 顶部用户信息栏 -->
+  <view class="user-header">
+    <view wx:if="{{hasUserInfo}}" class="user-info">
+      <image class="avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
+      <view class="user-details">
+        <text class="nickname">{{userInfo.nickName}}</text>
+        <text class="score">积分：{{userScore}}</text>
+      </view>
     </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
+    <view wx:else class="login-section">
+      <button class="login-btn" bindtap="login">登录获取用户信息</button>
     </view>
   </view>
-</scroll-view>
+
+  <!-- 拍照上传区域 -->
+  <view class="upload-section">
+    <view class="upload-title">人参识别</view>
+    <view class="upload-subtitle">上传人参照片，AI智能识别品种和参龄</view>
+    
+    <!-- 上传按钮 -->
+    <view wx:if="{{!uploadedImage}}" class="upload-area" bindtap="takePhoto">
+      <view class="upload-icon">📷</view>
+      <text class="upload-text">点击拍照或选择图片</text>
+    </view>
+    
+    <!-- 已上传的图片 -->
+    <view wx:if="{{uploadedImage}}" class="uploaded-image-container">
+      <image class="uploaded-image" src="{{uploadedImage}}" mode="aspectFit"></image>
+      <button class="reupload-btn" bindtap="takePhoto">重新上传</button>
+    </view>
+  </view>
+
+  <!-- 分析中状态 -->
+  <view wx:if="{{isAnalyzing}}" class="analyzing">
+    <view class="loading-icon">⏳</view>
+    <text>AI正在分析中...</text>
+  </view>
+
+  <!-- 分析结果 -->
+  <view wx:if="{{analysisResult && !isAnalyzing}}" class="result-section">
+    <view class="result-title">识别结果</view>
+    <view class="result-card">
+      <view class="result-item">
+        <text class="result-label">人参类型：</text>
+        <text class="result-value type">{{analysisResult.type}}</text>
+      </view>
+      <view class="result-item">
+        <text class="result-label">参龄估计：</text>
+        <text class="result-value age">{{analysisResult.age}}</text>
+      </view>
+      <view class="result-item">
+        <text class="result-label">识别置信度：</text>
+        <text class="result-value confidence">{{analysisResult.confidence}}</text>
+      </view>
+      <view class="result-description">
+        <text class="description-text">{{analysisResult.description}}</text>
+      </view>
+    </view>
+    <button class="reanalyze-btn" bindtap="reAnalyze">重新分析</button>
+  </view>
+</view>

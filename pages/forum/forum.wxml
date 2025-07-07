@@ -1,0 +1,64 @@
+<!--forum.wxml-->
+<view class="container">
+  <!-- 顶部统计信息 -->
+  <view class="stats-header">
+    <view class="stat-item">
+      <text class="stat-number">{{posts.length}}</text>
+      <text class="stat-label">帖子总数</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-number">{{userScore}}</text>
+      <text class="stat-label">我的积分</text>
+    </view>
+  </view>
+  
+  <!-- 帖子列表 -->
+  <view class="posts-list">
+    <view wx:for="{{posts}}" wx:key="id" class="post-item">
+      <view class="post-header">
+        <image class="author-avatar" src="{{item.avatar}}" mode="cover"></image>
+        <view class="author-info">
+          <text class="author-name">{{item.author}}</text>
+          <text class="post-time">{{item.createTime}}</text>
+        </view>
+      </view>
+      
+      <view class="post-content" bindtap="viewPost" data-id="{{item.id}}">
+        <text class="post-title">{{item.title}}</text>
+        <text class="post-text">{{item.content}}</text>
+        
+        <!-- 图片列表 -->
+        <view wx:if="{{item.images && item.images.length > 0}}" class="post-images">
+          <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" 
+                 class="post-image" src="{{img}}" mode="aspectFill"></image>
+        </view>
+      </view>
+      
+      <view class="post-actions">
+        <view class="action-item" bindtap="likePost" data-index="{{index}}">
+          <text class="action-icon {{item.liked ? 'liked' : ''}}">♥</text>
+          <text class="action-text">{{item.likes}}</text>
+        </view>
+        <view class="action-item" bindtap="viewPost" data-id="{{item.id}}">
+          <text class="action-icon">💬</text>
+          <text class="action-text">{{item.comments}}</text>
+        </view>
+        <view class="action-item" bindtap="sharePost" data-index="{{index}}">
+          <text class="action-icon">📤</text>
+          <text class="action-text">分享</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{posts.length === 0}}" class="empty-state">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">还没有帖子，快来发布第一个吧！</text>
+    </view>
+  </view>
+  
+  <!-- 发布按钮 -->
+  <view class="fab" bindtap="createPost">
+    <text class="fab-icon">+</text>
+  </view>
+</view>
