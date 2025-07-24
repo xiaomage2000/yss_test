@@ -83,7 +83,7 @@ Page({
             author: post.author_nickname || post.author,
             avatar: post.author_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
             createTime: this.formatTime(post.created_at),
-            images: post.images ? JSON.parse(post.images) : [],
+            images: this.parseImages(post.images),
             likes: post.likes_count || 0,
             comments: post.comments_count || 0,
             liked: false // 这里需要根据用户状态判断
@@ -302,17 +302,79 @@ Page({
     })
   },
 
+  // 解析图片数组 - 修复JSON数组解析问题
+  parseImages(images) {
+    if (!images) return []
+    
+    try {
+      // 如果已经是数组，直接返回
+      if (Array.isArray(images)) {
+        return images
+      }
+      
+      // 如果是字符串
+      if (typeof images === 'string') {
+        // 处理空数组字符串
+        if (images.trim() === '[]' || images.trim() === '') {
+          return []
+        }
+        
+        // 尝试解析JSON
+        const parsed = JSON.parse(images)
+        const parsed1 = JSON.parse(parsed)
+        const prefix = app.globalData.apiBase;
+        const fullUrls = parsed1.map(path => prefix + path);
+        return fullUrls
+      }
+      
+      return []
+    } catch (e) {
+      console.error('解析图片数组失败:', e, images)
+      // 如果解析失败，尝试其他方法
+      if (typeof images === 'string' && images.length > 0) {
+        // 可能是单个图片URL
+        return [images]
+      }
+      return []
+    }
+  },
+
   // 格式化时间
   formatTime(timestamp) {
     if (!timestamp) return ''
     
-    const date = new Date(timestamp)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hour = String(date.getHours()).padStart(2, '0')
-    const minute = String(date.getMinutes()).padStart(2, '0')
-    
-    return `${year}-${month}-${day} ${hour}:${minute}`
+    try {
+      // 处理各种时间格式，确保iOS兼容
+      let date
+      if (typeof timestamp === 'string') {
+        // 处理GMT格式时间，转换为iOS支持的格式
+        if (timestamp.includes('GMT')) {
+          date = new Date(timestamp.replace(/GMT.*$/, '').trim())
+        } else {
+          // 将时间格式标准化为iOS支持的格式
+          const isoString = timestamp.replace(/\s+/, 'T').replace(/\s+GMT.*$/, '')
+          date = new Date(isoString)
+        }
+      } else {
+        date = new Date(timestamp)
+      }
+      
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date:', timestamp)
+        return ''
+      }
+      
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+      
+      return `${year}-${month}-${day} ${hour}:${minute}`
+    } catch (e) {
+      console.error('时间格式化错误:', e, timestamp)
+      return ''
+    }
   }
 })

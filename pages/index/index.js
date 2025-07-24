@@ -76,10 +76,14 @@ Page({
   // 登录获取用户信息
   login() {
     app.getUserInfo((userInfo) => {
-      this.setData({
-        userInfo: userInfo,
-        hasUserInfo: true
-      })
+      if (userInfo) {
+        this.setData({
+          userInfo: userInfo,
+          hasUserInfo: true
+        })
+        // 登录成功后重新获取积分
+        this.getUserScore()
+      }
     })
   },
   
@@ -142,10 +146,10 @@ Page({
             this.setData({
               isAnalyzing: false,
               analysisResult: {
-                type: data.data.ginseng_type,
-                age: data.data.estimated_age,
-                confidence: `${(data.data.confidence * 100).toFixed(1)}%`,
-                description: data.data.description || '人参识别分析完成'
+                type: data.result.type,
+                age: data.result.age,
+                confidence: data.result.confidence,
+                description: data.result.description || '人参识别分析完成'
               }
             })
             
@@ -161,7 +165,8 @@ Page({
             this.handleAnalysisError(data.error)
           }
         } catch (e) {
-          this.handleAnalysisError('解析响应失败')
+          console.error('解析响应失败:', e, res.data)
+          this.handleAnalysisError('解析响应失败: ' + e.message)
         }
       },
       fail: (err) => {

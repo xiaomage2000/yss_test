@@ -70,7 +70,7 @@ Page({
             author: post.author_nickname || post.author,
             avatar: post.author_avatar || this.data.userInfo.avatarUrl,
             createTime: this.formatTime(post.created_at),
-            images: post.images ? JSON.parse(post.images) : [],
+            images: this.parseImages(post.images),
             likes: post.likes_count || 0,
             comments: post.comments_count || 0,
             liked: false
@@ -301,6 +301,43 @@ Page({
     wx.switchTab({
       url: '/pages/forum/forum'
     })
+  },
+
+  // 解析图片数组 - 修复JSON数组解析问题
+  parseImages(images) {
+    if (!images) return []
+    
+    try {
+      // 如果已经是数组，直接返回
+      if (Array.isArray(images)) {
+        return images
+      }
+      
+      // 如果是字符串
+      if (typeof images === 'string') {
+        // 处理空数组字符串
+        if (images.trim() === '[]' || images.trim() === '') {
+          return []
+        }
+        
+        // 尝试解析JSON
+        const parsed = JSON.parse(images)
+        const parsed1 = JSON.parse(parsed)
+        const prefix = app.globalData.apiBase;
+        const fullUrls = parsed1.map(path => prefix + path);
+        return fullUrls
+      }
+      
+      return []
+    } catch (e) {
+      console.error('解析图片数组失败:', e, images)
+      // 如果解析失败，尝试其他方法
+      if (typeof images === 'string' && images.length > 0) {
+        // 可能是单个图片URL
+        return [images]
+      }
+      return []
+    }
   },
 
   // 格式化时间
