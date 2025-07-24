@@ -292,6 +292,93 @@ def get_posts():
         print(f"获取帖子失败: {e}")
         return jsonify({'error': '获取帖子失败'}), 500
 
+@app.route('/api/users/<int:user_id>/posts', methods=['GET'])
+def get_user_posts(user_id):
+    """获取用户的帖子列表"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        offset = (page - 1) * limit
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': '数据库连接失败'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 获取用户帖子列表
+        cursor.execute("""
+            SELECT p.*, u.nickname as author_nickname, u.avatar_url as author_avatar
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = %s AND p.status = 1
+            ORDER BY p.created_at DESC
+            LIMIT %s OFFSET %s
+        """, (user_id, limit, offset))
+        
+        posts = cursor.fetchall()
+        
+        # 获取总数
+        cursor.execute("SELECT COUNT(*) as total FROM posts WHERE user_id = %s AND status = 1", (user_id,))
+        total = cursor.fetchone()['total']
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'data': posts,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        })
+        
+    except Exception as e:
+        print(f"获取用户帖子失败: {e}")
+        return jsonify({'error': '获取用户帖子失败'}), 500
+
+@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    """删除帖子（软删除）"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'error': '缺少用户ID'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': '数据库连接失败'}), 500
+        
+        cursor = connection.cursor()
+        
+        # 验证帖子是否属于该用户
+        cursor.execute("SELECT user_id FROM posts WHERE id = %s", (post_id,))
+        post = cursor.fetchone()
+        
+        if not post:
+            return jsonify({'error': '帖子不存在'}), 404
+        
+        if post[0] != user_id:
+            return jsonify({'error': '无权删除此帖子'}), 403
+        
+        # 软删除帖子（设置status为0）
+        cursor.execute("UPDATE posts SET status = 0 WHERE id = %s", (post_id,))
+        connection.commit()
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({'success': True, 'message': '帖子删除成功'})
+        
+    except Exception as e:
+        print(f"删除帖子失败: {e}")
+        return jsonify({'error': '删除帖子失败'}), 500
+
 @app.route('/api/posts', methods=['POST'])
 def create_post():
     """创建帖子"""
