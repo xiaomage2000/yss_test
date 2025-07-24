@@ -29,29 +29,84 @@ Page({
   
   // 加载帖子详情
   loadPost(postId) {
-    const posts = wx.getStorageSync('posts') || []
-    const post = posts.find(p => p.id == postId)
-    if (post) {
-      this.setData({
-        post: post
-      })
-    } else {
-      wx.showToast({
-        title: '帖子不存在',
-        icon: 'error'
-      })
-      setTimeout(() => {
-        wx.navigateBack()
-      }, 1500)
-    }
+    const app = getApp()
+    
+    wx.showLoading({
+      title: '加载中...'
+    })
+    
+    app.request({
+      url: `/api/posts/${postId}`,
+      method: 'GET',
+      success: (data) => {
+        wx.hideLoading()
+        console.log(data)
+        if (data.success && data.post) {
+          const post = {
+            id: data.post.id,
+            title: data.post.title,
+            content: data.post.content,
+            author: data.post.author_nickname || data.post.author,
+            avatar: data.post.author_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+            createTime: this.formatTime(data.post.created_at),
+            images: data.post.images ? JSON.parse(data.post.images) : [],
+            likes: data.post.likes_count || 0,
+            comments: data.post.comments_count || 0,
+            liked: false // 需要根据用户状态判断
+          }
+          
+          this.setData({
+            post: post
+          })
+        } else {
+          wx.showToast({
+            title: '帖子不存在',
+            icon: 'error'
+          })
+          setTimeout(() => {
+            wx.navigateBack()
+          }, 1500)
+        }
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        wx.showToast({
+          title: '网络错误',
+          icon: 'error'
+        })
+        setTimeout(() => {
+          wx.navigateBack()
+        }, 1500)
+      }
+    })
   },
   
   // 加载评论
   loadComments(postId) {
-    const comments = wx.getStorageSync('comments') || []
-    const postComments = comments.filter(c => c.postId == postId)
-    this.setData({
-      comments: postComments
+    const app = getApp()
+    
+    app.request({
+      url: `/api/posts/${postId}/comments`,
+      method: 'GET',
+      success: (data) => {
+        if (data.success && data.data) {
+          const comments = data.data.map(comment => ({
+            id: comment.id,
+            postId: comment.post_id,
+            content: comment.content,
+            author: comment.user_nickname || comment.author,
+            avatar: comment.user_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+            createTime: this.formatTime(comment.created_at)
+          }))
+          
+          this.setData({
+            comments: comments
+          })
+        }
+      },
+      fail: (err) => {
+        console.error('获取评论失败:', err)
+      }
     })
   },
   
@@ -61,31 +116,54 @@ Page({
     app.checkUserLogin((isLoggedIn, userInfo) => {
       if (isLoggedIn) {
         const post = this.data.post
-        const liked = !post.liked
-        const likes = liked ? post.likes + 1 : post.likes - 1
-        
-        post.liked = liked
-        post.likes = likes
-        
-        this.setData({
-          post: post
-        })
-        
-        // 更新本地存储
-        const posts = wx.getStorageSync('posts') || []
-        const index = posts.findIndex(p => p.id === post.id)
-        if (index !== -1) {
-          posts[index] = post
-          wx.setStorageSync('posts', posts)
-        }
-        
-        wx.showToast({
-          title: liked ? '点赞成功' : '取消点赞',
-          icon: 'success'
-        })
+        this.likePostAPI(post.id, !post.liked)
       } else {
         wx.showToast({
           title: '未登录，无法点赞',
+          icon: 'error'
+        })
+      }
+    })
+  },
+
+  // 通过API点赞
+  likePostAPI(postId, isLike) {
+    const app = getApp()
+    
+    app.request({
+      url: `/api/posts/${postId}/like`,
+      method: 'POST',
+      data: {
+        user_id: 1, // 模拟用户ID
+        action: isLike ? 'like' : 'unlike'
+      },
+      success: (data) => {
+        if (data.success) {
+          // 更新本地状态
+          const post = this.data.post
+          const likes = isLike ? post.likes + 1 : post.likes - 1
+          
+          post.liked = isLike
+          post.likes = likes
+          
+          this.setData({
+            post: post
+          })
+          
+          wx.showToast({
+            title: isLike ? '点赞成功' : '取消点赞',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: data.error || '操作失败',
+            icon: 'error'
+          })
+        }
+      },
+      fail: (err) => {
+        wx.showToast({
+          title: '网络错误',
           icon: 'error'
         })
       }
@@ -134,42 +212,57 @@ Page({
       return
     }
     
-    const newComment = {
-      id: Date.now(),
-      postId: this.data.post.id,
-      content: this.data.replyText,
-      author: this.data.userInfo.nickName,
-      avatar: this.data.userInfo.avatarUrl,
-      createTime: this.formatTime(new Date())
-    }
+    this.submitCommentAPI()
+  },
+
+  // 通过API提交评论
+  submitCommentAPI() {
+    const app = getApp()
     
-    // 保存到本地存储
-    const comments = wx.getStorageSync('comments') || []
-    comments.push(newComment)
-    wx.setStorageSync('comments', comments)
-    
-    // 更新帖子的评论数
-    const posts = wx.getStorageSync('posts') || []
-    const postIndex = posts.findIndex(p => p.id === this.data.post.id)
-    if (postIndex !== -1) {
-      posts[postIndex].comments += 1
-      wx.setStorageSync('posts', posts)
-      
-      this.setData({
-        'post.comments': posts[postIndex].comments
-      })
-    }
-    
-    // 更新页面数据
-    this.setData({
-      comments: [...this.data.comments, newComment],
-      replyText: '',
-      showReplyInput: false
+    wx.showLoading({
+      title: '发送中...'
     })
     
-    wx.showToast({
-      title: '回复成功',
-      icon: 'success'
+    app.request({
+      url: `/api/posts/${this.data.post.id}/comments`,
+      method: 'POST',
+      data: {
+        user_id: 1, // 模拟用户ID
+        content: this.data.replyText
+      },
+      success: (data) => {
+        wx.hideLoading()
+        if (data.success) {
+          // 重新加载评论
+          this.loadComments(this.data.post.id)
+          
+          // 更新帖子的评论数
+          const post = this.data.post
+          post.comments += 1
+          this.setData({
+            post: post,
+            replyText: '',
+            showReplyInput: false
+          })
+          
+          wx.showToast({
+            title: '回复成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: data.error || '回复失败',
+            icon: 'error'
+          })
+        }
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        wx.showToast({
+          title: '网络错误',
+          icon: 'error'
+        })
+      }
     })
   },
   
@@ -249,13 +342,19 @@ Page({
       urls: images
     })
   },
-  formatTime(date) {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    const hour = date.getHours()
-    const minute = date.getMinutes()
+
+  // 格式化时间
+  formatTime(timestamp) {
+    if (!timestamp) return ''
     
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    // 处理字符串时间戳
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hour}:${minute}`
   }
 })

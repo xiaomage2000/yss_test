@@ -51,9 +51,25 @@ Page({
   
   // 获取用户积分
   getUserScore() {
-    const userScore = wx.getStorageSync('userScore') || 100
-    this.setData({
-      userScore: userScore
+    const app = getApp()
+    
+    app.request({
+      url: '/api/user/1/score', // 模拟用户ID
+      method: 'GET',
+      success: (data) => {
+        if (data.success && data.data) {
+          this.setData({
+            userScore: data.data.total_score
+          })
+        }
+      },
+      fail: (err) => {
+        // API失败时使用本地存储的积分
+        const userScore = wx.getStorageSync('userScore') || 100
+        this.setData({
+          userScore: userScore
+        })
+      }
     })
   },
   
@@ -93,7 +109,7 @@ Page({
     })
   },
   
-  // 模拟分析图片
+  // 分析图片
   analyzeImage(imagePath) {
     this.setData({
       isAnalyzing: true,
@@ -101,40 +117,70 @@ Page({
     })
     
     wx.showLoading({
-      title: '分析中...'
+      title: '上传分析中...'
     })
     
-    // 模拟后端分析过程
-    setTimeout(() => {
-      // 模拟分析结果
-      const mockResults = [
-        {
-          type: '原参',
-          age: '3-5年',
-          confidence: '95.2%',
-          description: '这是一株品质优良的原参，参龄较为理想。'
-        },
-        {
-          type: '林下山参',
-          age: '8-12年',
-          confidence: '87.6%',
-          description: '这是一株珍贵的林下山参，年份较长，营养价值很高。'
+    // 上传图片到后端进行分析
+    this.uploadAndAnalyze(imagePath)
+  },
+
+  // 上传并分析图片
+  uploadAndAnalyze(imagePath) {
+    const app = getApp()
+    
+    wx.uploadFile({
+      url: `${app.globalData.apiBase}/api/ginseng/analyze`,
+      filePath: imagePath,
+      name: 'image',
+      formData: {
+        user_id: 1 // 模拟用户ID
+      },
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data)
+          if (data.success) {
+            this.setData({
+              isAnalyzing: false,
+              analysisResult: {
+                type: data.data.ginseng_type,
+                age: data.data.estimated_age,
+                confidence: `${(data.data.confidence * 100).toFixed(1)}%`,
+                description: data.data.description || '人参识别分析完成'
+              }
+            })
+            
+            wx.hideLoading()
+            wx.showToast({
+              title: '分析完成',
+              icon: 'success'
+            })
+            
+            // 增加积分
+            app.updateScore(10)
+          } else {
+            this.handleAnalysisError(data.error)
+          }
+        } catch (e) {
+          this.handleAnalysisError('解析响应失败')
         }
-      ]
-      
-      const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)]
-      
-      this.setData({
-        isAnalyzing: false,
-        analysisResult: randomResult
-      })
-      
-      wx.hideLoading()
-      wx.showToast({
-        title: '分析完成',
-        icon: 'success'
-      })
-    }, 2000)
+      },
+      fail: (err) => {
+        this.handleAnalysisError('网络错误')
+      }
+    })
+  },
+
+  // 处理分析错误
+  handleAnalysisError(errorMsg) {
+    wx.hideLoading()
+    this.setData({
+      isAnalyzing: false
+    })
+    
+    wx.showToast({
+      title: errorMsg || '分析失败',
+      icon: 'error'
+    })
   },
   
   // 重新分析

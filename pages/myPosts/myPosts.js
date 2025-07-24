@@ -80,24 +80,19 @@ Page({
             myPosts: myPosts
           })
         } else {
-          this.loadMyPostsFromLocal()
+          wx.showToast({
+            title: '获取帖子失败',
+            icon: 'error'
+          })
         }
       },
       fail: (err) => {
         wx.hideLoading()
-        console.log('API请求失败，使用本地数据')
-        this.loadMyPostsFromLocal()
+        wx.showToast({
+          title: '网络错误',
+          icon: 'error'
+        })
       }
-    })
-  },
-
-  // 从本地存储获取我的帖子（备用方案）
-  loadMyPostsFromLocal() {
-    const posts = wx.getStorageSync('posts') || []
-    const myPosts = posts.filter(post => post.author === this.data.userInfo.nickName)
-    
-    this.setData({
-      myPosts: myPosts
     })
   },
 
@@ -160,18 +155,15 @@ Page({
       },
       fail: (err) => {
         wx.hideLoading()
-        // API失败，但仍然本地删除
-        console.log('API删除失败，仅本地删除')
-        this.deletePostLocally(postId, postIndex)
         wx.showToast({
-          title: '删除成功',
-          icon: 'success'
+          title: '网络错误',
+          icon: 'error'
         })
       }
     })
   },
 
-  // 本地删除帖子
+    // 本地删除帖子
   deletePostLocally(postId, postIndex) {
     // 从所有帖子中删除
     const allPosts = wx.getStorageSync('posts') || []
@@ -190,26 +182,50 @@ Page({
   likePost(e) {
     const index = e.currentTarget.dataset.index
     const post = this.data.myPosts[index]
-    const liked = !post.liked
-    const likes = liked ? post.likes + 1 : post.likes - 1
     
-    this.setData({
-      [`myPosts[${index}].liked`]: liked,
-      [`myPosts[${index}].likes`]: likes
-    })
+    // 调用API点赞
+    this.likePostAPI(post.id, index, !post.liked)
+  },
+
+  // 通过API点赞
+  likePostAPI(postId, index, isLike) {
+    const app = getApp()
     
-    // 更新本地存储中的所有帖子
-    const allPosts = wx.getStorageSync('posts') || []
-    const postIndex = allPosts.findIndex(p => p.id === post.id)
-    if (postIndex !== -1) {
-      allPosts[postIndex].liked = liked
-      allPosts[postIndex].likes = likes
-      wx.setStorageSync('posts', allPosts)
-    }
-    
-    wx.showToast({
-      title: liked ? '点赞成功' : '取消点赞',
-      icon: 'success'
+    app.request({
+      url: `/api/posts/${postId}/like`,
+      method: 'POST',
+      data: {
+        user_id: 1, // 模拟用户ID
+        action: isLike ? 'like' : 'unlike'
+      },
+      success: (data) => {
+        if (data.success) {
+          // 更新本地状态
+          const post = this.data.myPosts[index]
+          const likes = isLike ? post.likes + 1 : post.likes - 1
+          
+          this.setData({
+            [`myPosts[${index}].liked`]: isLike,
+            [`myPosts[${index}].likes`]: likes
+          })
+          
+          wx.showToast({
+            title: isLike ? '点赞成功' : '取消点赞',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: data.error || '操作失败',
+            icon: 'error'
+          })
+        }
+      },
+      fail: (err) => {
+        wx.showToast({
+          title: '网络错误',
+          icon: 'error'
+        })
+      }
     })
   },
 

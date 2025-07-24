@@ -478,6 +478,39 @@ def get_post_detail(post_id):
         print(f"获取帖子详情失败: {e}")
         return jsonify({'error': '获取帖子详情失败'}), 500
 
+@app.route('/api/posts/<int:post_id>/comments', methods=['GET'])
+def get_post_comments(post_id):
+    """获取帖子的评论列表"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': '数据库连接失败'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 获取评论列表
+        cursor.execute("""
+            SELECT c.*, u.nickname as user_nickname, u.avatar_url as user_avatar
+            FROM post_comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.post_id = %s AND c.status = 1
+            ORDER BY c.created_at ASC
+        """, (post_id,))
+        
+        comments = cursor.fetchall()
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'data': comments
+        })
+        
+    except Exception as e:
+        print(f"获取评论失败: {e}")
+        return jsonify({'error': '获取评论失败'}), 500
+
 @app.route('/api/posts/<int:post_id>/comments', methods=['POST'])
 def create_comment(post_id):
     """创建评论"""
@@ -582,6 +615,42 @@ def like_post(post_id):
     except Exception as e:
         print(f"点赞失败: {e}")
         return jsonify({'error': '点赞失败'}), 500
+
+@app.route('/api/upload/image', methods=['POST'])
+def upload_image():
+    """上传图片"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': '没有上传文件'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': '没有选择文件'}), 400
+        
+        if file and allowed_file(file.filename):
+            # 生成安全的文件名
+            filename = secure_filename(file.filename)
+            # 添加时间戳防止重名
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+            filename = timestamp + filename
+            
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # 返回文件URL
+            file_url = f"/uploads/{filename}"
+            
+            return jsonify({
+                'success': True,
+                'url': file_url,
+                'filename': filename
+            })
+        else:
+            return jsonify({'error': '不支持的文件类型'}), 400
+            
+    except Exception as e:
+        print(f"上传失败: {e}")
+        return jsonify({'error': '上传失败'}), 500
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

@@ -100,13 +100,66 @@ Page({
       title: '发布中...'
     })
     
+    // 如果有图片，先上传图片
+    if (this.data.images.length > 0) {
+      this.uploadImages().then((imageUrls) => {
+        this.submitPostToAPI(imageUrls)
+      }).catch((err) => {
+        wx.hideLoading()
+        console.error('图片上传失败:', err)
+        // 图片上传失败，仍然尝试发布帖子但不包含图片
+        this.submitPostToAPI([])
+      })
+    } else {
+      // 没有图片，直接发布
+      this.submitPostToAPI([])
+    }
+  },
+
+  // 上传图片到服务器
+  uploadImages() {
+    return new Promise((resolve, reject) => {
+      const app = getApp()
+      const uploadPromises = this.data.images.map((imagePath) => {
+        return new Promise((resolveUpload, rejectUpload) => {
+          wx.uploadFile({
+            url: `${app.globalData.apiBase}/api/upload/image`,
+            filePath: imagePath,
+            name: 'image',
+            success: (res) => {
+              try {
+                const data = JSON.parse(res.data)
+                if (data.success) {
+                  resolveUpload(data.url)
+                } else {
+                  rejectUpload(new Error(data.error || '上传失败'))
+                }
+              } catch (e) {
+                console.log(e)
+                rejectUpload(new Error('解析响应失败'))
+              }
+            },
+            fail: rejectUpload
+          })
+        })
+      })
+
+      Promise.all(uploadPromises)
+        .then(resolve)
+        .catch(reject)
+    })
+  },
+
+  // 提交帖子到API
+  submitPostToAPI(imageUrls) {
+    const app = getApp()
     const userId = this.data.userInfo.id || 1 // 模拟用户ID
     
     const postData = {
       user_id: userId,
       title: this.data.title,
       content: this.data.content,
-      images: JSON.stringify(this.data.images)
+      images: JSON.stringify(imageUrls)
     }
     
     app.request({
@@ -117,76 +170,51 @@ Page({
         wx.hideLoading()
         if (data.success) {
           // API发布成功
+          const app = getApp()
           app.updateScore(20)
           wx.showToast({
             title: '发布成功，+20积分',
             icon: 'success'
           })
           
-          // 同时保存到本地存储
-          this.savePostLocally(data.data)
+          // 保存到本地存储，使用服务器返回的图片URLs
+          this.savePostLocally(data.data, imageUrls)
           
           setTimeout(() => {
             wx.navigateBack()
           }, 1500)
         } else {
-          // API失败，使用本地发布
-          this.publishPostLocally()
+          wx.showToast({
+            title: data.error || '发布失败',
+            icon: 'error'
+          })
         }
       },
       fail: (err) => {
         wx.hideLoading()
-        console.log('API发布失败，使用本地发布')
-        this.publishPostLocally()
+        wx.showToast({
+          title: '网络错误，发布失败',
+          icon: 'error'
+        })
       }
     })
   },
 
-  // 本地发布帖子（备用方案）
-  publishPostLocally() {
-    const app = getApp()
-    
-    // 创建新帖子
-    const newPost = {
-      id: Date.now(),
-      title: this.data.title,
-      content: this.data.content,
-      author: this.data.userInfo.nickName,
-      avatar: this.data.userInfo.avatarUrl,
-      createTime: this.formatTime(new Date()),
-      images: this.data.images,
-      likes: 0,
-      comments: 0,
-      liked: false
-    }
-    
-    this.savePostLocally(newPost)
-    
-    // 增加积分
-    app.updateScore(20)
-    
-    wx.showToast({
-      title: '发布成功，+20积分',
-      icon: 'success'
-    })
-    
-    setTimeout(() => {
-      wx.navigateBack()
-    }, 1500)
-  },
-
   // 保存帖子到本地存储
-  savePostLocally(postData) {
+  savePostLocally(postData, imageUrls) {
+    // 确保postData存在，如果不存在则创建默认对象
+    const safePostData = postData || {}
+    
     const newPost = {
-      id: postData.id || Date.now(),
-      title: postData.title || this.data.title,
-      content: postData.content || this.data.content,
+      id: safePostData.id || Date.now(),
+      title: safePostData.title || this.data.title,
+      content: safePostData.content || this.data.content,
       author: this.data.userInfo.nickName,
       avatar: this.data.userInfo.avatarUrl,
-      createTime: postData.created_at ? this.formatTime(new Date(postData.created_at)) : this.formatTime(new Date()),
-      images: this.data.images,
-      likes: postData.likes_count || 0,
-      comments: postData.comments_count || 0,
+      createTime: safePostData.created_at ? this.formatTime(new Date(safePostData.created_at)) : this.formatTime(new Date()),
+      images: imageUrls || this.data.images, // 优先使用上传后的URL
+      likes: safePostData.likes_count || 0,
+      comments: safePostData.comments_count || 0,
       liked: false
     }
     

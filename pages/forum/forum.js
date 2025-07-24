@@ -33,9 +33,25 @@ Page({
   
   // 获取用户积分
   getUserScore() {
-    const userScore = wx.getStorageSync('userScore') || 100
-    this.setData({
-      userScore: userScore
+    const app = getApp()
+    
+    app.request({
+      url: '/api/user/1/score', // 模拟用户ID
+      method: 'GET',
+      success: (data) => {
+        if (data.success && data.data) {
+          this.setData({
+            userScore: data.data.total_score
+          })
+        }
+      },
+      fail: (err) => {
+        // API失败时使用本地存储的积分
+        const userScore = wx.getStorageSync('userScore') || 100
+        this.setData({
+          userScore: userScore
+        })
+      }
     })
   },
   
@@ -80,61 +96,22 @@ Page({
           // 同时保存到本地存储作为备份
           wx.setStorageSync('posts', posts)
         } else {
-          this.loadPostsFromLocal()
+          wx.showToast({
+            title: '获取帖子失败',
+            icon: 'error'
+          })
         }
       },
       fail: (err) => {
         wx.hideLoading()
-        console.log('API请求失败，使用本地数据')
-        this.loadPostsFromLocal()
+        wx.showToast({
+          title: '网络错误',
+          icon: 'error'
+        })
       }
     })
   },
 
-  // 从本地存储获取帖子（备用方案）
-  loadPostsFromLocal() {
-    // 从本地存储加载帖子
-    const posts = wx.getStorageSync('posts') || []
-    
-    // 如果没有帖子，创建一些示例帖子
-    if (posts.length === 0) {
-      const samplePosts = [
-        {
-          id: 1,
-          title: '分享一株野山参',
-          content: '在长白山发现的一株野山参，大家看看品质如何？',
-          author: '人参爱好者',
-          avatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-          createTime: '2025-01-07 10:30',
-          images: [],
-          likes: 15,
-          comments: 8,
-          liked: false
-        },
-        {
-          id: 2,
-          title: '人参泡酒的正确方法',
-          content: '最近想用人参泡酒，请教一下各位大神正确的泡制方法和注意事项。',
-          author: '新手小白',
-          avatar: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-          createTime: '2025-01-07 09:15',
-          images: [],
-          likes: 23,
-          comments: 12,
-          liked: false
-        }
-      ]
-      wx.setStorageSync('posts', samplePosts)
-      this.setData({
-        posts: samplePosts
-      })
-    } else {
-      this.setData({
-        posts: posts
-      })
-    }
-  },
-  
   // 发布新帖子
   createPost() {
     const app = getApp()
@@ -167,25 +144,54 @@ Page({
       if (isLoggedIn) {
         const index = e.currentTarget.dataset.index
         const post = this.data.posts[index]
-        const liked = !post.liked
-        const likes = liked ? post.likes + 1 : post.likes - 1
         
-        this.setData({
-          [`posts[${index}].liked`]: liked,
-          [`posts[${index}].likes`]: likes
-        })
-        
-        // 更新本地存储
-        const posts = this.data.posts
-        wx.setStorageSync('posts', posts)
-        
-        wx.showToast({
-          title: liked ? '点赞成功' : '取消点赞',
-          icon: 'success'
-        })
+        // 调用API点赞
+        this.likePostAPI(post.id, index, !post.liked)
       } else {
         wx.showToast({
           title: '未登录，无法点赞',
+          icon: 'error'
+        })
+      }
+    })
+  },
+
+  // 通过API点赞
+  likePostAPI(postId, index, isLike) {
+    const app = getApp()
+    
+    app.request({
+      url: `/api/posts/${postId}/like`,
+      method: 'POST',
+      data: {
+        user_id: 1, // 模拟用户ID
+        action: isLike ? 'like' : 'unlike'
+      },
+      success: (data) => {
+        if (data.success) {
+          // 更新本地状态
+          const post = this.data.posts[index]
+          const likes = isLike ? post.likes + 1 : post.likes - 1
+          
+          this.setData({
+            [`posts[${index}].liked`]: isLike,
+            [`posts[${index}].likes`]: likes
+          })
+          
+          wx.showToast({
+            title: isLike ? '点赞成功' : '取消点赞',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: data.error || '操作失败',
+            icon: 'error'
+          })
+        }
+      },
+      fail: (err) => {
+        wx.showToast({
+          title: '网络错误',
           icon: 'error'
         })
       }
