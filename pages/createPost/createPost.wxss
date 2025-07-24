@@ -113,7 +113,7 @@ page {
 }
 
 .publish-btn {
-  width: 100%;
+  width: 80%!important;
   background: linear-gradient(135deg, #13A5F0, #1890FF);
   color: white;
   border: none;

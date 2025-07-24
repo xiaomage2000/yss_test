@@ -19,11 +19,33 @@ App({
         
         // 模拟登录成功后的处理
         this.checkUserInfo()
+        
+        // 自动获取用户信息
+        this.autoGetUserInfo()
       },
       fail: err => {
         console.error('登录失败:', err)
       }
     })
+  },
+  
+  // 自动获取用户信息
+  autoGetUserInfo() {
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      // 如果没有用户信息，尝试自动获取
+      wx.getUserProfile({
+        desc: '用于显示用户信息和个性化服务',
+        success: (res) => {
+          this.globalData.userInfo = res.userInfo
+          wx.setStorageSync('userInfo', res.userInfo)
+          console.log('自动获取用户信息成功')
+        },
+        fail: (err) => {
+          console.log('用户拒绝授权或获取用户信息失败:', err)
+        }
+      })
+    }
   },
   
   // 检查用户信息
@@ -47,7 +69,7 @@ App({
       callback && callback(this.globalData.userInfo)
     } else {
       wx.getUserProfile({
-        desc: '用于显示用户信息',
+        desc: '用于显示用户信息和个性化服务',
         success: (res) => {
           this.globalData.userInfo = res.userInfo
           wx.setStorageSync('userInfo', res.userInfo)
@@ -55,6 +77,34 @@ App({
         },
         fail: (err) => {
           console.error('获取用户信息失败:', err)
+          callback && callback(null)
+        }
+      })
+    }
+  },
+  
+  // 检查用户是否已登录
+  checkUserLogin(callback) {
+    const userInfo = wx.getStorageSync('userInfo')
+    if (userInfo) {
+      callback && callback(true, userInfo)
+    } else {
+      // 提示用户登录
+      wx.showModal({
+        title: '需要登录',
+        content: '该功能需要登录后才能使用，是否立即登录？',
+        success: (res) => {
+          if (res.confirm) {
+            this.getUserInfo((userInfo) => {
+              if (userInfo) {
+                callback && callback(true, userInfo)
+              } else {
+                callback && callback(false, null)
+              }
+            })
+          } else {
+            callback && callback(false, null)
+          }
         }
       })
     }

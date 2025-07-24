@@ -4,6 +4,7 @@
     "pages/knowledge/knowledge",
     "pages/forum/forum",
     "pages/createPost/createPost",
+    "pages/postDetail/postDetail",
     "pages/logs/logs"
   ],
   "window": {

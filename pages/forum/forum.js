@@ -83,16 +83,18 @@ Page({
   
   // 发布新帖子
   createPost() {
-    if (!this.data.userInfo) {
-      wx.showToast({
-        title: '请先登录',
-        icon: 'error'
-      })
-      return
-    }
-    
-    wx.navigateTo({
-      url: '/pages/createPost/createPost'
+    const app = getApp()
+    app.checkUserLogin((isLoggedIn, userInfo) => {
+      if (isLoggedIn) {
+        wx.navigateTo({
+          url: '/pages/createPost/createPost'
+        })
+      } else {
+        wx.showToast({
+          title: '未登录，无法发帖',
+          icon: 'error'
+        })
+      }
     })
   },
   
@@ -106,19 +108,34 @@ Page({
   
   // 点赞帖子
   likePost(e) {
-    const index = e.currentTarget.dataset.index
-    const post = this.data.posts[index]
-    const liked = !post.liked
-    const likes = liked ? post.likes + 1 : post.likes - 1
-    
-    this.setData({
-      [`posts[${index}].liked`]: liked,
-      [`posts[${index}].likes`]: likes
+    const app = getApp()
+    app.checkUserLogin((isLoggedIn, userInfo) => {
+      if (isLoggedIn) {
+        const index = e.currentTarget.dataset.index
+        const post = this.data.posts[index]
+        const liked = !post.liked
+        const likes = liked ? post.likes + 1 : post.likes - 1
+        
+        this.setData({
+          [`posts[${index}].liked`]: liked,
+          [`posts[${index}].likes`]: likes
+        })
+        
+        // 更新本地存储
+        const posts = this.data.posts
+        wx.setStorageSync('posts', posts)
+        
+        wx.showToast({
+          title: liked ? '点赞成功' : '取消点赞',
+          icon: 'success'
+        })
+      } else {
+        wx.showToast({
+          title: '未登录，无法点赞',
+          icon: 'error'
+        })
+      }
     })
-    
-    // 更新本地存储
-    const posts = this.data.posts
-    wx.setStorageSync('posts', posts)
   },
   
   // 分享帖子到微信
@@ -127,22 +144,58 @@ Page({
     const post = this.data.posts[index]
     
     wx.showActionSheet({
-      itemList: ['分享给微信好友', '分享到朋友圈'],
+      itemList: ['分享给微信好友', '分享到朋友圈', '复制链接'],
       success: (res) => {
         if (res.tapIndex === 0) {
-          // 分享给好友的逻辑
-          wx.showToast({
-            title: '分享成功',
-            icon: 'success'
+          // 分享给好友
+          wx.shareAppMessage({
+            title: post.title,
+            desc: post.content,
+            path: `/pages/postDetail/postDetail?id=${post.id}`,
+            success: () => {
+              wx.showToast({
+                title: '分享成功',
+                icon: 'success'
+              })
+            }
           })
         } else if (res.tapIndex === 1) {
-          // 分享到朋友圈的逻辑
+          // 分享到朋友圈 (需要在页面级别定义 onShareTimeline)
           wx.showToast({
-            title: '分享成功',
-            icon: 'success'
+            title: '请点击右上角分享到朋友圈',
+            icon: 'none'
+          })
+        } else if (res.tapIndex === 2) {
+          // 复制链接
+          wx.setClipboardData({
+            data: `人参识别助手 - ${post.title}: ${post.content}`,
+            success: () => {
+              wx.showToast({
+                title: '链接已复制',
+                icon: 'success'
+              })
+            }
           })
         }
       }
     })
+  },
+  
+  // 分享给好友（页面级别的分享函数）
+  onShareAppMessage(res) {
+    return {
+      title: '人参识别助手 - 专业的人参识别和交流平台',
+      path: '/pages/forum/forum',
+      imageUrl: '' // 可以设置分享图片
+    }
+  },
+  
+  // 分享到朋友圈（页面级别的分享函数）
+  onShareTimeline(res) {
+    return {
+      title: '人参识别助手 - 专业的人参识别和交流平台',
+      path: '/pages/forum/forum',
+      imageUrl: '' // 可以设置分享图片
+    }
   }
 })

@@ -1,0 +1,97 @@
+<!--postDetail.wxml-->
+<view class="container">
+  <!-- 帖子详情 -->
+  <view wx:if="{{post}}" class="post-detail">
+    <!-- 帖子头部 -->
+    <view class="post-header">
+      <image class="author-avatar" src="{{post.avatar}}" mode="cover"></image>
+      <view class="author-info">
+        <text class="author-name">{{post.author}}</text>
+        <text class="post-time">{{post.createTime}}</text>
+      </view>
+    </view>
+    
+    <!-- 帖子内容 -->
+    <view class="post-content">
+      <text class="post-title">{{post.title}}</text>
+      <text class="post-text">{{post.content}}</text>
+      
+      <!-- 图片列表 -->
+      <view wx:if="{{post.images && post.images.length > 0}}" class="post-images">
+        <image wx:for="{{post.images}}" wx:key="*this" 
+               class="post-image" src="{{item}}" mode="aspectFit"
+               bindtap="previewImage" data-src="{{item}}"></image>
+      </view>
+    </view>
+    
+    <!-- 帖子操作 -->
+    <view class="post-actions">
+      <view class="action-item" bindtap="likePost">
+        <text class="action-icon {{post.liked ? 'liked' : ''}}">♥</text>
+        <text class="action-text">{{post.likes}}</text>
+      </view>
+      <view class="action-item" bindtap="showReply">
+        <text class="action-icon">💬</text>
+        <text class="action-text">{{post.comments}}</text>
+      </view>
+      <view class="action-item" bindtap="sharePost">
+        <text class="action-icon">📤</text>
+        <text class="action-text">分享</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 评论列表 -->
+  <view class="comments-section">
+    <view class="section-title">评论 ({{comments.length}})</view>
+    
+    <view wx:if="{{comments.length > 0}}" class="comments-list">
+      <view wx:for="{{comments}}" wx:key="id" class="comment-item">
+        <image class="comment-avatar" src="{{item.avatar}}" mode="cover"></image>
+        <view class="comment-content">
+          <view class="comment-header">
+            <text class="comment-author">{{item.author}}</text>
+            <text class="comment-time">{{item.createTime}}</text>
+          </view>
+          <text class="comment-text">{{item.content}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <view wx:else class="no-comments">
+      <text class="no-comments-text">还没有评论，快来抢沙发吧！</text>
+    </view>
+  </view>
+  
+  <!-- 回复输入框 -->
+  <view class="reply-section">
+    <view class="reply-input-container">
+      <input class="reply-input" 
+             placeholder="写下你的想法..." 
+             bindinput="onReplyInput"
+             value="{{replyText}}"
+             bindconfirm="sendReply"/>
+      <button class="reply-btn" bindtap="sendReply">发送</button>
+    </view>
+  </view>
+</view>
+
+<!-- 回复弹窗 -->
+<view wx:if="{{showReplyInput}}" class="reply-modal">
+  <view class="modal-mask" bindtap="hideReply"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text class="modal-title">回复帖子</text>
+      <text class="modal-close" bindtap="hideReply">×</text>
+    </view>
+    <textarea class="reply-textarea" 
+              placeholder="写下你的想法..." 
+              bindinput="onReplyInput"
+              value="{{replyText}}"
+              maxlength="500"/>
+    <view class="modal-actions">
+      <button class="cancel-btn" bindtap="hideReply">取消</button>
+      <button class="confirm-btn" bindtap="sendReply">发送</button>
+    </view>
+  </view>
+</view>
