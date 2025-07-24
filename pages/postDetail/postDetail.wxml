@@ -30,7 +30,7 @@
         <text class="action-icon {{post.liked ? 'liked' : ''}}">♥</text>
         <text class="action-text">{{post.likes}}</text>
       </view>
-      <view class="action-item" bindtap="viewPost">
+      <view class="action-item">
           <text class="action-icon">💬</text>
           <text class="action-text">{{post.comments}}</text>
       </view>

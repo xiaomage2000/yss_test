@@ -5,6 +5,7 @@
     "pages/forum/forum",
     "pages/createPost/createPost",
     "pages/postDetail/postDetail",
+    "pages/myPosts/myPosts",
     "pages/logs/logs"
   ],
   "window": {

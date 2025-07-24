@@ -6,6 +6,10 @@
       <text class="stat-number">{{posts.length}}</text>
       <text class="stat-label">帖子总数</text>
     </view>
+    <view class="stat-item" bindtap="viewMyPosts">
+      <text class="stat-number">{{myPostsCount}}</text>
+      <text class="stat-label">我的帖子</text>
+    </view>
     <view class="stat-item">
       <text class="stat-number">{{userScore}}</text>
       <text class="stat-label">我的积分</text>
@@ -30,8 +34,7 @@
         <!-- 图片列表 -->
         <view wx:if="{{item.images && item.images.length > 0}}" class="post-images">
           <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" 
-                 class="post-image" src="{{img}}" mode="aspectFill"
-                 bindtap="previewImage" data-src="{{img}}" data-index="{{index}}"></image>
+                 class="post-image" src="{{img}}" mode="aspectFill"></image>
         </view>
       </view>
       

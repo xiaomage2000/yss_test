@@ -1,5 +1,6 @@
 // index.js
 const app = getApp()
+const util = require('../../utils/util.js')
 
 Page({
   data: {
@@ -8,7 +9,12 @@ Page({
     hasUserInfo: false,
     uploadedImage: '',
     analysisResult: null,
-    isAnalyzing: false
+    isAnalyzing: false,
+    apiStatus: {
+      online: false,
+      message: '检测中...',
+      apiBase: ''
+    }
   },
   
   onLoad() {
@@ -16,6 +22,8 @@ Page({
     this.getUserInfo()
     // 获取用户积分
     this.getUserScore()
+    // 检测API状态
+    this.checkAPIStatus()
   },
   
   onShow() {
@@ -149,6 +157,25 @@ Page({
     return {
       title: '人参识别助手 - AI智能识别人参品种和参龄',
       path: '/pages/index/index'
+    }
+  },
+
+  // 检测API状态
+  async checkAPIStatus() {
+    try {
+      const status = await util.getAPIStatus()
+      this.setData({
+        apiStatus: status
+      })
+    } catch (err) {
+      console.error('检测API状态失败:', err)
+      this.setData({
+        apiStatus: {
+          online: false,
+          message: 'API检测失败',
+          apiBase: app.globalData.apiBase
+        }
+      })
     }
   }
 })

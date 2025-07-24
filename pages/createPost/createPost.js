@@ -88,6 +88,64 @@ Page({
       return
     }
     
+    // 尝试通过API发布
+    this.publishPostToAPI()
+  },
+
+  // 通过API发布帖子
+  publishPostToAPI() {
+    const app = getApp()
+    
+    wx.showLoading({
+      title: '发布中...'
+    })
+    
+    const userId = this.data.userInfo.id || 1 // 模拟用户ID
+    
+    const postData = {
+      user_id: userId,
+      title: this.data.title,
+      content: this.data.content,
+      images: JSON.stringify(this.data.images)
+    }
+    
+    app.request({
+      url: '/api/posts',
+      method: 'POST',
+      data: postData,
+      success: (data) => {
+        wx.hideLoading()
+        if (data.success) {
+          // API发布成功
+          app.updateScore(20)
+          wx.showToast({
+            title: '发布成功，+20积分',
+            icon: 'success'
+          })
+          
+          // 同时保存到本地存储
+          this.savePostLocally(data.data)
+          
+          setTimeout(() => {
+            wx.navigateBack()
+          }, 1500)
+        } else {
+          // API失败，使用本地发布
+          this.publishPostLocally()
+        }
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        console.log('API发布失败，使用本地发布')
+        this.publishPostLocally()
+      }
+    })
+  },
+
+  // 本地发布帖子（备用方案）
+  publishPostLocally() {
+    const app = getApp()
+    
     // 创建新帖子
     const newPost = {
       id: Date.now(),
@@ -102,10 +160,7 @@ Page({
       liked: false
     }
     
-    // 保存到本地存储
-    const posts = wx.getStorageSync('posts') || []
-    posts.unshift(newPost)
-    wx.setStorageSync('posts', posts)
+    this.savePostLocally(newPost)
     
     // 增加积分
     app.updateScore(20)
@@ -118,6 +173,27 @@ Page({
     setTimeout(() => {
       wx.navigateBack()
     }, 1500)
+  },
+
+  // 保存帖子到本地存储
+  savePostLocally(postData) {
+    const newPost = {
+      id: postData.id || Date.now(),
+      title: postData.title || this.data.title,
+      content: postData.content || this.data.content,
+      author: this.data.userInfo.nickName,
+      avatar: this.data.userInfo.avatarUrl,
+      createTime: postData.created_at ? this.formatTime(new Date(postData.created_at)) : this.formatTime(new Date()),
+      images: this.data.images,
+      likes: postData.likes_count || 0,
+      comments: postData.comments_count || 0,
+      liked: false
+    }
+    
+    // 保存到本地存储
+    const posts = wx.getStorageSync('posts') || []
+    posts.unshift(newPost)
+    wx.setStorageSync('posts', posts)
   },
   
   // 格式化时间

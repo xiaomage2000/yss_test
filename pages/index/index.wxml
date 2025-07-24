@@ -14,6 +14,13 @@
     </view>
   </view>
 
+  <!-- API状态 -->
+  <view class="api-status">
+    <text class="status-label">服务状态：</text>
+    <text class="status-text {{apiStatus.online ? 'online' : 'offline'}}">{{apiStatus.message}}</text>
+    <text class="api-base">{{apiStatus.apiBase}}</text>
+  </view>
+
   <!-- 人参识别区域 -->
   <view class="recognition-section">
     <!-- 上传区域 -->

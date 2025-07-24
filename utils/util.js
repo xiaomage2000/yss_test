@@ -14,6 +14,39 @@ const formatNumber = n => {
   return n[1] ? n : `0${n}`
 }
 
+// API 连接测试
+const testAPIConnection = (callback) => {
+  const app = getApp()
+  
+  app.request({
+    url: '/api/health',
+    method: 'GET',
+    success: (data) => {
+      console.log('API连接成功:', data)
+      if (callback) callback(true, 'API连接正常')
+    },
+    fail: (err) => {
+      console.log('API连接失败:', err)
+      if (callback) callback(false, 'API连接失败，使用本地模式')
+    }
+  })
+}
+
+// 获取API状态
+const getAPIStatus = () => {
+  return new Promise((resolve) => {
+    testAPIConnection((success, message) => {
+      resolve({
+        online: success,
+        message: message,
+        apiBase: getApp().globalData.apiBase
+      })
+    })
+  })
+}
+
 module.exports = {
-  formatTime
+  formatTime,
+  testAPIConnection,
+  getAPIStatus
 }

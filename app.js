@@ -132,8 +132,37 @@ App({
     return newScore
   },
   
+  // API请求封装
+  request(options) {
+    const { url, method = 'GET', data = {}, success, fail } = options
+    
+    const requestUrl = url.startsWith('http') ? url : `${this.globalData.apiBase}${url}`
+    
+    wx.request({
+      url: requestUrl,
+      method: method,
+      data: data,
+      header: {
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          if (success) success(res.data)
+        } else {
+          console.error('API请求失败:', res)
+          if (fail) fail(res)
+        }
+      },
+      fail: (err) => {
+        console.error('网络请求失败:', err)
+        if (fail) fail(err)
+      }
+    })
+  },
+  
   globalData: {
     userInfo: null,
-    userScore: 100
+    userScore: 100,
+    apiBase: 'https://api.051700.xyz'  // API基础URL
   }
 })

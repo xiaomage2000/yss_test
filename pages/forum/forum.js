@@ -5,7 +5,8 @@ Page({
   data: {
     posts: [],
     userInfo: null,
-    userScore: 100
+    userScore: 100,
+    myPostsCount: 0
   },
   
   onLoad() {
@@ -17,6 +18,7 @@ Page({
     // 每次显示页面时重新加载帖子和积分
     this.loadPosts()
     this.getUserScore()
+    this.updateMyPostsCount()
   },
   
   // 获取用户信息
@@ -39,6 +41,58 @@ Page({
   
   // 加载帖子列表
   loadPosts() {
+    // 首先尝试从后端获取帖子
+    this.loadPostsFromAPI()
+  },
+
+  // 从API获取帖子
+  loadPostsFromAPI() {
+    const app = getApp()
+    
+    wx.showLoading({
+      title: '加载中...'
+    })
+    
+    app.request({
+      url: '/api/posts',
+      method: 'GET',
+      success: (data) => {
+        wx.hideLoading()
+        if (data.success && data.data) {
+          // 转换后端数据格式为前端需要的格式
+          const posts = data.data.map(post => ({
+            id: post.id,
+            title: post.title,
+            content: post.content,
+            author: post.author_nickname || post.author,
+            avatar: post.author_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
+            createTime: this.formatTime(post.created_at),
+            images: post.images ? JSON.parse(post.images) : [],
+            likes: post.likes_count || 0,
+            comments: post.comments_count || 0,
+            liked: false // 这里需要根据用户状态判断
+          }))
+          
+          this.setData({
+            posts: posts
+          })
+          
+          // 同时保存到本地存储作为备份
+          wx.setStorageSync('posts', posts)
+        } else {
+          this.loadPostsFromLocal()
+        }
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        console.log('API请求失败，使用本地数据')
+        this.loadPostsFromLocal()
+      }
+    })
+  },
+
+  // 从本地存储获取帖子（备用方案）
+  loadPostsFromLocal() {
     // 从本地存储加载帖子
     const posts = wx.getStorageSync('posts') || []
     
@@ -208,16 +262,51 @@ Page({
     }
   },
   
-  // 预览图片
-  previewImage(e) {
-    const src = e.currentTarget.dataset.src
-    const index = e.currentTarget.dataset.index
-    const post = this.data.posts[index]
-    const images = post.images || []
-    
-    wx.previewImage({
-      current: src,
-      urls: images
+  // 更新我的帖子数量
+  updateMyPostsCount() {
+    const app = getApp()
+    app.checkUserLogin((isLoggedIn, userInfo) => {
+      if (isLoggedIn) {
+        const myPosts = this.data.posts.filter(post => post.author === userInfo.nickName)
+        this.setData({
+          myPostsCount: myPosts.length
+        })
+      } else {
+        this.setData({
+          myPostsCount: 0
+        })
+      }
     })
+  },
+  
+  // 查看我的帖子
+  viewMyPosts() {
+    const app = getApp()
+    app.checkUserLogin((isLoggedIn, userInfo) => {
+      if (isLoggedIn) {
+        wx.navigateTo({
+          url: '/pages/myPosts/myPosts'
+        })
+      } else {
+        wx.showToast({
+          title: '请先登录',
+          icon: 'error'
+        })
+      }
+    })
+  },
+
+  // 格式化时间
+  formatTime(timestamp) {
+    if (!timestamp) return ''
+    
+    const date = new Date(timestamp)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hour}:${minute}`
   }
 })
