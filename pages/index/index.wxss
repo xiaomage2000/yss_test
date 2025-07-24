@@ -60,45 +60,71 @@ page {
   font-size: 28rpx;
 }
 
-/* 上传区域 */
-.upload-section {
+/* 人参识别区域 */
+.recognition-section {
   background: #fff;
   border-radius: 20rpx;
-  padding: 40rpx;
+  padding: 30rpx;
   margin-bottom: 30rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+@media screen and (min-width: 768rpx) {
+  .recognition-section {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .upload-area-container,
+  .result-area-container {
+    flex: 1;
+  }
+  
+  .upload-area-container {
+    margin-right: 20rpx;
+  }
+  
+  .result-area-container {
+    margin-left: 20rpx;
+  }
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 30rpx;
 }
 
 .upload-title {
-  font-size: 36rpx;
+  font-size: 32rpx;
   font-weight: bold;
   color: #333;
-  text-align: center;
   margin-bottom: 10rpx;
 }
 
 .upload-subtitle {
   font-size: 24rpx;
   color: #666;
-  text-align: center;
-  margin-bottom: 40rpx;
 }
 
+/* 上传区域 */
 .upload-area {
   border: 4rpx dashed #ddd;
   border-radius: 20rpx;
-  padding: 80rpx 40rpx;
+  padding: 60rpx 30rpx;
   text-align: center;
   background: #fafafa;
 }
 
 .upload-icon {
-  font-size: 80rpx;
-  margin-bottom: 20rpx;
+  font-size: 60rpx;
+  margin-bottom: 15rpx;
 }
 
 .upload-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
 }
 
@@ -108,9 +134,9 @@ page {
 
 .uploaded-image {
   width: 100%;
-  max-height: 400rpx;
-  border-radius: 20rpx;
-  margin-bottom: 20rpx;
+  max-height: 300rpx;
+  border-radius: 15rpx;
+  margin-bottom: 15rpx;
 }
 
 .reupload-btn {
@@ -118,68 +144,44 @@ page {
   color: #13A5F0;
   border: 2rpx solid #13A5F0;
   border-radius: 50rpx;
-  padding: 15rpx 40rpx;
-  font-size: 26rpx;
-}
-
-/* 分析中状态 */
-.analyzing {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 60rpx;
-  text-align: center;
-  margin-bottom: 30rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-}
-
-.loading-icon {
-  font-size: 60rpx;
-  margin-bottom: 20rpx;
-  animation: rotate 2s linear infinite;
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  padding: 12rpx 30rpx;
+  font-size: 24rpx;
 }
 
 /* 结果区域 */
-.result-section {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 40rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+.result-area-container {
+  min-height: 300rpx;
 }
 
 .result-title {
-  font-size: 36rpx;
+  font-size: 32rpx;
   font-weight: bold;
   color: #333;
   text-align: center;
-  margin-bottom: 30rpx;
+  margin-bottom: 20rpx;
 }
 
 .result-card {
   background: #f8f9fa;
   border-radius: 15rpx;
-  padding: 30rpx;
-  margin-bottom: 30rpx;
+  padding: 25rpx;
+  margin-bottom: 20rpx;
 }
 
 .result-item {
   display: flex;
-  margin-bottom: 20rpx;
+  margin-bottom: 15rpx;
   align-items: center;
 }
 
 .result-label {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
-  width: 180rpx;
+  width: 160rpx;
 }
 
 .result-value {
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: bold;
   flex: 1;
 }
@@ -197,23 +199,44 @@ page {
 }
 
 .result-description {
-  margin-top: 20rpx;
-  padding-top: 20rpx;
+  margin-top: 15rpx;
+  padding-top: 15rpx;
   border-top: 1rpx solid #eee;
 }
 
 .description-text {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: #666;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .reanalyze-btn {
   background: #13A5F0;
   color: white;
   border-radius: 50rpx;
-  padding: 20rpx;
+  padding: 15rpx;
   width: 100%;
   border: none;
-  font-size: 28rpx;
+  font-size: 26rpx;
+}
+
+/* 分析中状态 */
+.analyzing {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 50rpx;
+  text-align: center;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.loading-icon {
+  font-size: 50rpx;
+  margin-bottom: 15rpx;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

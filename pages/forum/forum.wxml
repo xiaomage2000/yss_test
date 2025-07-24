@@ -30,7 +30,8 @@
         <!-- 图片列表 -->
         <view wx:if="{{item.images && item.images.length > 0}}" class="post-images">
           <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" 
-                 class="post-image" src="{{img}}" mode="aspectFill"></image>
+                 class="post-image" src="{{img}}" mode="aspectFill"
+                 bindtap="previewImage" data-src="{{img}}" data-index="{{index}}"></image>
         </view>
       </view>
       

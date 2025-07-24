@@ -33,18 +33,31 @@ App({
   autoGetUserInfo() {
     const userInfo = wx.getStorageSync('userInfo')
     if (!userInfo) {
-      // 如果没有用户信息，尝试自动获取
-      wx.getUserProfile({
-        desc: '用于显示用户信息和个性化服务',
-        success: (res) => {
-          this.globalData.userInfo = res.userInfo
-          wx.setStorageSync('userInfo', res.userInfo)
-          console.log('自动获取用户信息成功')
-        },
-        fail: (err) => {
-          console.log('用户拒绝授权或获取用户信息失败:', err)
-        }
-      })
+      // 如果没有用户信息，主动请求用户授权
+      setTimeout(() => {
+        wx.showModal({
+          title: '欢迎使用人参识别助手',
+          content: '为了提供更好的服务，需要获取您的基本信息。点击"确定"进行授权登录。',
+          confirmText: '确定',
+          cancelText: '稍后',
+          success: (res) => {
+            if (res.confirm) {
+              this.getUserInfo((userInfo) => {
+                if (userInfo) {
+                  console.log('用户授权成功:', userInfo)
+                  // 通知所有页面用户信息已更新
+                  wx.$eventBus = wx.$eventBus || {}
+                  wx.$eventBus.userInfoUpdated = true
+                } else {
+                  console.log('用户拒绝授权')
+                }
+              })
+            } else {
+              console.log('用户选择稍后授权')
+            }
+          }
+        })
+      }, 1000) // 延迟1秒显示，避免与小程序启动冲突
     }
   },
   

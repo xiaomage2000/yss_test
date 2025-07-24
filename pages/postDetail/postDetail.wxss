@@ -204,25 +204,21 @@ page {
 .reply-input-container {
   display: flex;
   align-items: center;
-  gap: 15rpx;
-}
-
-.reply-input {
-  flex: 1;
-  padding: 15rpx 20rpx;
-  border: 1rpx solid #e0e0e0;
-  border-radius: 50rpx;
-  font-size: 26rpx;
+  justify-content: space-between;
   background: #f8f9fa;
+  border-radius: 50rpx;
+  padding: 20rpx 30rpx;
 }
 
-.reply-btn {
-  background: #13A5F0;
-  color: white;
-  border: none;
-  border-radius: 50rpx;
-  padding: 15rpx 30rpx;
+.reply-placeholder {
+  flex: 1;
+  color: #999;
   font-size: 26rpx;
+}
+
+.reply-icon {
+  font-size: 28rpx;
+  color: #13A5F0;
 }
 
 /* 回复弹窗 */
@@ -246,13 +242,13 @@ page {
 
 .modal-content {
   position: absolute;
-  bottom: 0;
+  top: 15%;
   left: 20rpx;
   right: 20rpx;
   background: #fff;
-  border-radius: 20rpx 20rpx 0 0;
+  border-radius: 20rpx;
   padding: 30rpx;
-  max-height: 60vh;
+  max-height: 50vh;
 }
 
 .modal-header {

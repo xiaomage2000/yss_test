@@ -50,5 +50,21 @@ Page({
     this.setData({
       [key]: !item.expanded
     })
+  },
+  
+  // 页面分享函数
+  onShareAppMessage(res) {
+    return {
+      title: '人参知识百科 - 人参识别助手',
+      desc: '了解人参的种类、功效和使用方法',
+      path: '/pages/knowledge/knowledge'
+    }
+  },
+  
+  onShareTimeline(res) {
+    return {
+      title: '人参知识百科 - 人参识别助手',
+      path: '/pages/knowledge/knowledge'
+    }
   }
 })

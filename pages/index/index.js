@@ -19,8 +19,15 @@ Page({
   },
   
   onShow() {
-    // 每次显示页面时更新积分
+    // 每次显示页面时更新积分和用户信息
     this.getUserScore()
+    this.getUserInfo()
+    
+    // 检查全局用户信息更新事件
+    if (wx.$eventBus && wx.$eventBus.userInfoUpdated) {
+      this.getUserInfo()
+      wx.$eventBus.userInfoUpdated = false
+    }
   },
   
   // 获取用户信息
@@ -126,6 +133,22 @@ Page({
   reAnalyze() {
     if (this.data.uploadedImage) {
       this.analyzeImage(this.data.uploadedImage)
+    }
+  },
+  
+  // 页面分享函数
+  onShareAppMessage(res) {
+    return {
+      title: '人参识别助手 - AI智能识别人参品种和参龄',
+      desc: '上传人参照片，快速识别品种和年份',
+      path: '/pages/index/index'
+    }
+  },
+  
+  onShareTimeline(res) {
+    return {
+      title: '人参识别助手 - AI智能识别人参品种和参龄',
+      path: '/pages/index/index'
     }
   }
 })

@@ -176,28 +176,22 @@ Page({
   // 分享帖子
   sharePost() {
     const post = this.data.post
+    // 存储要分享的帖子信息
+    this.sharePostData = post
+    
     wx.showActionSheet({
-      itemList: ['分享给微信好友', '分享到朋友圈', '复制链接'],
+      itemList: ['分享给微信好友', '复制链接'],
       success: (res) => {
         if (res.tapIndex === 0) {
-          // 分享给好友
-          wx.shareAppMessage({
-            title: post.title,
-            desc: post.content,
-            path: `/pages/postDetail/postDetail?id=${post.id}`,
-            success: () => {
-              wx.showToast({
-                title: '分享成功',
-                icon: 'success'
-              })
-            }
+          // 分享给好友 - 提示用户点击右上角分享按钮
+          wx.showModal({
+            title: '分享提示',
+            content: '请点击右上角的分享按钮，选择"发送给朋友"来分享这个帖子',
+            showCancel: false,
+            confirmText: '知道了'
           })
         } else if (res.tapIndex === 1) {
-          wx.showToast({
-            title: '请点击右上角分享到朋友圈',
-            icon: 'none'
-          })
-        } else if (res.tapIndex === 2) {
+          // 复制链接
           wx.setClipboardData({
             data: `人参识别助手 - ${post.title}: ${post.content}`,
             success: () => {
@@ -214,23 +208,47 @@ Page({
   
   // 页面分享函数
   onShareAppMessage(res) {
-    const post = this.data.post
+    const post = this.sharePostData || this.data.post
+    if (post) {
+      return {
+        title: post.title,
+        desc: post.content,
+        path: `/pages/postDetail/postDetail?id=${post.id}`,
+        imageUrl: post.images && post.images.length > 0 ? post.images[0] : ''
+      }
+    }
     return {
-      title: post ? post.title : '人参识别助手',
-      desc: post ? post.content : '专业的人参识别和交流平台',
-      path: post ? `/pages/postDetail/postDetail?id=${post.id}` : '/pages/forum/forum'
+      title: '人参识别助手',
+      desc: '专业的人参识别和交流平台',
+      path: '/pages/forum/forum'
     }
   },
   
   onShareTimeline(res) {
-    const post = this.data.post
+    const post = this.sharePostData || this.data.post
+    if (post) {
+      return {
+        title: `${post.title} - 人参识别助手`,
+        path: `/pages/postDetail/postDetail?id=${post.id}`,
+        imageUrl: post.images && post.images.length > 0 ? post.images[0] : ''
+      }
+    }
     return {
-      title: post ? `${post.title} - 人参识别助手` : '人参识别助手',
-      path: post ? `/pages/postDetail/postDetail?id=${post.id}` : '/pages/forum/forum'
+      title: '人参识别助手 - 专业的人参识别和交流平台',
+      path: '/pages/forum/forum'
     }
   },
   
-  // 格式化时间
+  // 预览图片
+  previewImage(e) {
+    const src = e.currentTarget.dataset.src
+    const images = this.data.post.images || []
+    
+    wx.previewImage({
+      current: src,
+      urls: images
+    })
+  },
   formatTime(date) {
     const year = date.getFullYear()
     const month = date.getMonth() + 1

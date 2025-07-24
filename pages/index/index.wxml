@@ -14,50 +14,55 @@
     </view>
   </view>
 
-  <!-- 拍照上传区域 -->
-  <view class="upload-section">
-    <view class="upload-title">人参识别</view>
-    <view class="upload-subtitle">上传人参照片，AI智能识别品种和参龄</view>
-    
-    <!-- 上传按钮 -->
-    <view wx:if="{{!uploadedImage}}" class="upload-area" bindtap="takePhoto">
-      <view class="upload-icon">📷</view>
-      <text class="upload-text">点击拍照或选择图片</text>
+  <!-- 人参识别区域 -->
+  <view class="recognition-section">
+    <!-- 上传区域 -->
+    <view class="upload-area-container">
+      <view class="section-header">
+        <view class="upload-title">人参识别</view>
+        <view class="upload-subtitle">上传人参照片，AI智能识别品种和参龄</view>
+      </view>
+      
+      <!-- 上传按钮 -->
+      <view wx:if="{{!uploadedImage}}" class="upload-area" bindtap="takePhoto">
+        <view class="upload-icon">📷</view>
+        <text class="upload-text">点击拍照或选择图片</text>
+      </view>
+      
+      <!-- 已上传的图片 -->
+      <view wx:if="{{uploadedImage}}" class="uploaded-image-container">
+        <image class="uploaded-image" src="{{uploadedImage}}" mode="aspectFit"></image>
+        <button class="reupload-btn" bindtap="takePhoto">重新上传</button>
+      </view>
     </view>
-    
-    <!-- 已上传的图片 -->
-    <view wx:if="{{uploadedImage}}" class="uploaded-image-container">
-      <image class="uploaded-image" src="{{uploadedImage}}" mode="aspectFit"></image>
-      <button class="reupload-btn" bindtap="takePhoto">重新上传</button>
-    </view>
-  </view>
 
-  <!-- 分析中状态 -->
-  <view wx:if="{{isAnalyzing}}" class="analyzing">
-    <view class="loading-icon">⏳</view>
-    <text>AI正在分析中...</text>
-  </view>
-
-  <!-- 分析结果 -->
-  <view wx:if="{{analysisResult && !isAnalyzing}}" class="result-section">
-    <view class="result-title">识别结果</view>
-    <view class="result-card">
-      <view class="result-item">
-        <text class="result-label">人参类型：</text>
-        <text class="result-value type">{{analysisResult.type}}</text>
-      </view>
-      <view class="result-item">
-        <text class="result-label">参龄估计：</text>
-        <text class="result-value age">{{analysisResult.age}}</text>
-      </view>
-      <view class="result-item">
-        <text class="result-label">识别置信度：</text>
-        <text class="result-value confidence">{{analysisResult.confidence}}</text>
-      </view>
-      <view class="result-description">
-        <text class="description-text">{{analysisResult.description}}</text>
-      </view>
+    <!-- 分析中状态 -->
+    <view wx:if="{{isAnalyzing}}" class="analyzing">
+      <view class="loading-icon">⏳</view>
+      <text>AI正在分析中...</text>
     </view>
-    <button class="reanalyze-btn" bindtap="reAnalyze">重新分析</button>
+
+    <!-- 分析结果 -->
+    <view wx:if="{{analysisResult && !isAnalyzing}}" class="result-area-container">
+      <view class="result-title">识别结果</view>
+      <view class="result-card">
+        <view class="result-item">
+          <text class="result-label">人参类型：</text>
+          <text class="result-value type">{{analysisResult.type}}</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">参龄估计：</text>
+          <text class="result-value age">{{analysisResult.age}}</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">识别置信度：</text>
+          <text class="result-value confidence">{{analysisResult.confidence}}</text>
+        </view>
+        <view class="result-description">
+          <text class="description-text">{{analysisResult.description}}</text>
+        </view>
+      </view>
+      <button class="reanalyze-btn" bindtap="reAnalyze">重新分析</button>
+    </view>
   </view>
 </view>

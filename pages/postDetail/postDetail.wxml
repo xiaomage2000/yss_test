@@ -30,9 +30,9 @@
         <text class="action-icon {{post.liked ? 'liked' : ''}}">♥</text>
         <text class="action-text">{{post.likes}}</text>
       </view>
-      <view class="action-item" bindtap="showReply">
-        <text class="action-icon">💬</text>
-        <text class="action-text">{{post.comments}}</text>
+      <view class="action-item" bindtap="viewPost">
+          <text class="action-icon">💬</text>
+          <text class="action-text">{{post.comments}}</text>
       </view>
       <view class="action-item" bindtap="sharePost">
         <text class="action-icon">📤</text>
@@ -65,13 +65,9 @@
   
   <!-- 回复输入框 -->
   <view class="reply-section">
-    <view class="reply-input-container">
-      <input class="reply-input" 
-             placeholder="写下你的想法..." 
-             bindinput="onReplyInput"
-             value="{{replyText}}"
-             bindconfirm="sendReply"/>
-      <button class="reply-btn" bindtap="sendReply">发送</button>
+    <view class="reply-input-container" bindtap="showReply">
+      <view class="reply-placeholder">写下你的想法...</view>
+      <view class="reply-icon">💬</view>
     </view>
   </view>
 </view>
@@ -88,6 +84,7 @@
               placeholder="写下你的想法..." 
               bindinput="onReplyInput"
               value="{{replyText}}"
+              auto-focus="{{showReplyInput}}"
               maxlength="500"/>
     <view class="modal-actions">
       <button class="cancel-btn" bindtap="hideReply">取消</button>
