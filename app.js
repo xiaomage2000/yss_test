@@ -42,15 +42,9 @@ App({
           cancelText: '稍后',
           success: (res) => {
             if (res.confirm) {
-              this.getUserInfo((userInfo) => {
-                if (userInfo) {
-                  console.log('用户授权成功:', userInfo)
-                  // 通知所有页面用户信息已更新
-                  wx.$eventBus = wx.$eventBus || {}
-                  wx.$eventBus.userInfoUpdated = true
-                } else {
-                  console.log('用户拒绝授权')
-                }
+              // 跳转到首页让用户登录
+              wx.switchTab({
+                url: '/pages/index/index'
               })
             } else {
               console.log('用户选择稍后授权')

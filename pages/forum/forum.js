@@ -93,6 +93,9 @@ Page({
             posts: posts
           })
           
+          // 帖子加载完成后更新我的帖子数量
+          this.updateMyPostsCount()
+          
           // 同时保存到本地存储作为备份
           wx.setStorageSync('posts', posts)
         } else {
@@ -273,9 +276,32 @@ Page({
     const app = getApp()
     app.checkUserLogin((isLoggedIn, userInfo) => {
       if (isLoggedIn) {
-        const myPosts = this.data.posts.filter(post => post.author === userInfo.nickName)
-        this.setData({
-          myPostsCount: myPosts.length
+        // 调用API获取用户帖子数量
+        app.request({
+          url: '/api/user/posts',
+          method: 'GET',
+          data: { page: 1, limit: 1 }, // 只需要获取总数
+          success: (res) => {
+            if (res.data.success && res.data.pagination) {
+              this.setData({
+                myPostsCount: res.data.pagination.total
+              })
+            } else {
+              // 如果API调用失败，使用本地过滤作为备选
+              const myPosts = this.data.posts.filter(post => post.author === (userInfo.nickName || userInfo.nickname))
+              this.setData({
+                myPostsCount: myPosts.length
+              })
+            }
+          },
+          fail: (err) => {
+            console.error('获取用户帖子数量失败:', err)
+            // API调用失败时，使用本地过滤作为备选
+            const myPosts = this.data.posts.filter(post => post.author === (userInfo.nickName || userInfo.nickname))
+            this.setData({
+              myPostsCount: myPosts.length
+            })
+          }
         })
       } else {
         this.setData({

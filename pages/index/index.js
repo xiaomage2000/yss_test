@@ -75,14 +75,70 @@ Page({
   
   // 登录获取用户信息
   login() {
-    app.getUserInfo((userInfo) => {
-      if (userInfo) {
-        this.setData({
-          userInfo: userInfo,
-          hasUserInfo: true
+    wx.getUserProfile({
+      desc: '用于获取用户信息',
+      success: (profileRes) => {
+        const userInfo = profileRes.userInfo
+        
+        // 获取登录凭证
+        wx.login({
+          success: (loginRes) => {
+            if (loginRes.code) {
+              // 调用后端登录接口
+              app.request({
+                url: '/api/user/login',
+                method: 'POST',
+                data: {
+                  code: loginRes.code,
+                  userInfo: userInfo
+                },
+                success: (res) => {
+                  if (res.data.success) {
+                    const userData = res.data.user
+                    this.setData({
+                      userInfo: {
+                        nickName: userData.nickname || userInfo.nickName,
+                        avatarUrl: userData.avatar_url || userInfo.avatarUrl
+                      },
+                      hasUserInfo: true
+                    })
+                    
+                    // 保存用户信息到全局
+                    app.globalData.userInfo = this.data.userInfo
+                    app.globalData.hasUserInfo = true
+                    
+                    // 登录成功后重新获取积分
+                    this.getUserScore()
+                    
+                    wx.showToast({
+                      title: '登录成功',
+                      icon: 'success'
+                    })
+                  } else {
+                    wx.showToast({
+                      title: res.data.error || '登录失败',
+                      icon: 'error'
+                    })
+                  }
+                },
+                fail: (err) => {
+                  console.error('登录接口调用失败:', err)
+                  wx.showToast({
+                    title: '登录失败',
+                    icon: 'error'
+                  })
+                }
+              })
+            }
+          }
         })
-        // 登录成功后重新获取积分
-        this.getUserScore()
+      },
+      fail: (err) => {
+        console.log('获取用户信息失败:', err)
+        wx.showToast({
+          title: '获取用户信息失败',
+          icon: 'error'
+        })
       }
     })
   },
