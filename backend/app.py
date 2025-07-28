@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 import base64
 from PIL import Image
 import io
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -24,11 +25,17 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
+# 微信小程序配置
+WECHAT_CONFIG = {
+    'app_id': 'wx89180ef4401b15c0',  # 请替换为您的小程序AppID
+    'app_secret': '51efb5f158e3332b5d6e61cbbb2e4967'  # 请替换为您的小程序AppSecret
+}
+
 # 数据库配置
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'your_password',  # 请修改为您的MySQL密码
+    'password': 'Dd2411923*#',  # 请修改为您的MySQL密码
     'database': 'ginseng_system',
     'charset': 'utf8mb4'
 }
@@ -45,6 +52,12 @@ def get_db_connection():
     except Error as e:
         print(f"数据库连接失败: {e}")
         return None
+
+def format_datetime_for_ios(dt):
+    """格式化日期时间为iOS兼容的格式 yyyy/MM/dd HH:mm:ss"""
+    if dt is None:
+        return None
+    return dt.strftime('%Y/%m/%d %H:%M:%S')
 
 def allowed_file(filename):
     """检查文件扩展名是否允许"""
@@ -92,13 +105,38 @@ def user_login():
     try:
         data = request.get_json()
         code = data.get('code')
-        user_info = data.get('userInfo')
+        user_info = data.get('userInfo', {})
         
-        if not code or not user_info:
-            return jsonify({'error': '参数不完整'}), 400
+        if not code:
+            return jsonify({'error': '登录code不能为空'}), 400
         
-        # 模拟微信登录，实际应调用微信API获取openid
-        openid = f"mock_openid_{hash(code) % 10000}"
+        # 调用微信API获取openid
+        wx_url = f"https://api.weixin.qq.com/sns/jscode2session"
+        wx_params = {
+            'appid': WECHAT_CONFIG['app_id'],
+            'secret': WECHAT_CONFIG['app_secret'],
+            'js_code': code,
+            'grant_type': 'authorization_code'
+        }
+        
+        try:
+            wx_response = requests.get(wx_url, params=wx_params)
+            wx_data = wx_response.json()
+            
+            if 'errcode' in wx_data:
+                print(f"微信登录失败: {wx_data}")
+                # 开发环境使用模拟数据
+                openid = f"mock_openid_{hash(code) % 10000}"
+            else:
+                openid = wx_data.get('openid')
+                
+        except Exception as e:
+            print(f"调用微信API失败: {e}")
+            # 开发环境使用模拟数据
+            openid = f"mock_openid_{hash(code) % 10000}"
+        
+        if not openid:
+            return jsonify({'error': '获取用户信息失败'}), 400
         
         connection = get_db_connection()
         if not connection:
