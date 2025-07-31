@@ -6,7 +6,11 @@ Page({
     posts: [],
     userInfo: null,
     userScore: 100,
-    myPostsCount: 0
+    myPostsCount: 0,
+    currentPage: 1,
+    pageSize: 5,
+    hasMore: true,
+    loading: false
   },
   
   onLoad() {
@@ -56,8 +60,20 @@ Page({
   },
   
   // 加载帖子列表
-  loadPosts() {
-    // 首先尝试从后端获取帖子
+  loadPosts(refresh = true) {
+    if (refresh) {
+      // 刷新时重置分页状态
+      this.setData({
+        currentPage: 1,
+        posts: [],
+        hasMore: true
+      })
+    }
+    
+    if (this.data.loading || !this.data.hasMore) {
+      return
+    }
+    
     this.loadPostsFromAPI()
   },
 
@@ -65,39 +81,58 @@ Page({
   loadPostsFromAPI() {
     const app = getApp()
     
-    wx.showLoading({
-      title: '加载中...'
-    })
+    this.setData({ loading: true })
+    
+    if (this.data.currentPage === 1) {
+      wx.showLoading({
+        title: '加载中...'
+      })
+    }
     
     app.request({
       url: '/api/posts',
       method: 'GET',
+      data: {
+        page: this.data.currentPage,
+        limit: this.data.pageSize
+      },
       success: (data) => {
-        wx.hideLoading()
+        if (this.data.currentPage === 1) {
+          wx.hideLoading()
+        }
+        this.setData({ loading: false })
         if (data.success && data.data) {
           // 转换后端数据格式为前端需要的格式
-          const posts = data.data.map(post => ({
+          const newPosts = data.data.map(post => ({
             id: post.id,
             title: post.title,
             content: post.content,
             author: post.author_nickname || post.author,
             avatar: post.author_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-            createTime: this.formatTime(post.created_at),
+            createTime: post.created_at,
             images: this.parseImages(post.images),
             likes: post.likes_count || 0,
             comments: post.comments_count || 0,
             liked: false // 这里需要根据用户状态判断
           }))
           
+          const currentPosts = this.data.currentPage === 1 ? [] : this.data.posts
+          const allPosts = [...currentPosts, ...newPosts]
+          
+          // 检查是否还有更多数据
+          const hasMore = data.pagination ? this.data.currentPage < data.pagination.pages : false
+          
           this.setData({
-            posts: posts
+            posts: allPosts,
+            currentPage: this.data.currentPage + 1,
+            hasMore: hasMore
           })
           
           // 帖子加载完成后更新我的帖子数量
           this.updateMyPostsCount()
           
           // 同时保存到本地存储作为备份
-          wx.setStorageSync('posts', posts)
+          wx.setStorageSync('posts', allPosts)
         } else {
           wx.showToast({
             title: '获取帖子失败',
@@ -106,7 +141,10 @@ Page({
         }
       },
       fail: (err) => {
-        wx.hideLoading()
+        if (this.data.currentPage === 1) {
+          wx.hideLoading()
+        }
+        this.setData({ loading: false })
         wx.showToast({
           title: '网络错误',
           icon: 'error'
@@ -328,6 +366,22 @@ Page({
     })
   },
 
+  // 页面触底事件
+  onReachBottom() {
+    console.log('触底加载更多')
+    // 检查是否还有更多数据且当前没有在加载
+    if (this.data.hasMore && !this.data.loading) {
+      this.loadPosts(false) // false表示不刷新，追加数据
+    }
+  },
+
+  // 下拉刷新
+  onPullDownRefresh() {
+    console.log('下拉刷新')
+    this.loadPosts(true) // true表示刷新
+    wx.stopPullDownRefresh()
+  },
+
   // 解析图片数组 - 修复JSON数组解析问题
   parseImages(images) {
     if (!images) return []
@@ -364,43 +418,4 @@ Page({
       return []
     }
   },
-
-  // 格式化时间
-  formatTime(timestamp) {
-    if (!timestamp) return ''
-    
-    try {
-      // 处理各种时间格式，确保iOS兼容
-      let date
-      if (typeof timestamp === 'string') {
-        // 处理GMT格式时间，转换为iOS支持的格式
-        if (timestamp.includes('GMT')) {
-          date = new Date(timestamp.replace(/GMT.*$/, '').trim())
-        } else {
-          // 将时间格式标准化为iOS支持的格式
-          const isoString = timestamp.replace(/\s+/, 'T').replace(/\s+GMT.*$/, '')
-          date = new Date(isoString)
-        }
-      } else {
-        date = new Date(timestamp)
-      }
-      
-      // 检查日期是否有效
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid date:', timestamp)
-        return ''
-      }
-      
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hour = String(date.getHours()).padStart(2, '0')
-      const minute = String(date.getMinutes()).padStart(2, '0')
-      
-      return `${year}-${month}-${day} ${hour}:${minute}`
-    } catch (e) {
-      console.error('时间格式化错误:', e, timestamp)
-      return ''
-    }
-  }
 })

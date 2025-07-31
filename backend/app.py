@@ -308,6 +308,11 @@ def get_posts():
         
         posts = cursor.fetchall()
         
+        # 格式化时间为iOS兼容格式
+        for post in posts:
+            if 'created_at' in post and post['created_at']:
+                post['created_at'] = format_datetime_for_ios(post['created_at'])
+        
         # 获取总数
         cursor.execute("SELECT COUNT(*) as total FROM posts WHERE status = 1")
         total = cursor.fetchone()['total']
@@ -559,6 +564,10 @@ def get_post_detail(post_id):
         if not post:
             return jsonify({'error': '帖子不存在'}), 404
         
+        # 格式化帖子时间
+        if 'created_at' in post and post['created_at']:
+            post['created_at'] = format_datetime_for_ios(post['created_at'])
+        
         # 获取评论
         cursor.execute("""
             SELECT c.*, u.nickname as author_nickname, u.avatar_url as author_avatar
@@ -569,6 +578,11 @@ def get_post_detail(post_id):
         """, (post_id,))
         
         comments = cursor.fetchall()
+        
+        # 格式化评论时间
+        for comment in comments:
+            if 'created_at' in comment and comment['created_at']:
+                comment['created_at'] = format_datetime_for_ios(comment['created_at'])
         
         cursor.close()
         connection.close()
@@ -603,6 +617,11 @@ def get_post_comments(post_id):
         """, (post_id,))
         
         comments = cursor.fetchall()
+
+        # 格式化评论时间
+        for comment in comments:
+            if 'created_at' in comment and comment['created_at']:
+                comment['created_at'] = format_datetime_for_ios(comment['created_at'])
         
         cursor.close()
         connection.close()

@@ -1,0 +1,52 @@
+<view class="container">
+  <view class="header">
+    <text class="title">完善个人信息</text>
+    <text class="subtitle">为您提供更好的服务体验</text>
+  </view>
+
+  <form bindsubmit="onSubmit" bindreset="onReset">
+    <view class="form-section">
+      <!-- 头像选择 -->
+      <view class="avatar-section">
+        <text class="label">选择头像</text>
+        <button 
+          class="avatar-btn" 
+          open-type="chooseAvatar" 
+          bind:chooseavatar="onChooseAvatar"
+        >
+          <image 
+            class="avatar" 
+            src="{{avatarUrl}}" 
+            mode="aspectFill"
+          ></image>
+          <view class="avatar-tip">点击选择头像</view>
+        </button>
+      </view>
+
+      <!-- 昵称填写 -->
+      <view class="nickname-section">
+        <text class="label">设置昵称</text>
+        <input 
+          class="nickname-input"
+          type="nickname"
+          name="nickname"
+          value="{{nickname}}"
+          placeholder="请输入昵称"
+          placeholder-class="placeholder"
+          bindinput="onNicknameInput"
+          maxlength="20"
+        />
+      </view>
+    </view>
+
+    <view class="button-section">
+      <button 
+        class="submit-btn" 
+        form-type="submit"
+        disabled="{{!canSubmit}}"
+      >
+        完成设置
+      </button>
+    </view>
+  </form>
+</view>

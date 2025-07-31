@@ -37,21 +37,29 @@ App({
       setTimeout(() => {
         wx.showModal({
           title: '欢迎使用人参识别助手',
-          content: '为了提供更好的服务，需要获取您的基本信息。点击"确定"进行授权登录。',
+          content: '为了提供更好的服务，需要完善您的个人信息。点击"确定"进行设置。',
           confirmText: '确定',
           cancelText: '稍后',
           success: (res) => {
             if (res.confirm) {
-              // 跳转到首页让用户登录
-              wx.switchTab({
-                url: '/pages/index/index'
+              // 获取登录凭证后跳转到用户信息填写页面
+              wx.login({
+                success: (loginRes) => {
+                  if (loginRes.code) {
+                    wx.navigateTo({
+                      url: `/pages/userProfile/userProfile?code=${loginRes.code}`
+                    })
+                  }
+                }
               })
-            } else {
-              console.log('用户选择稍后授权')
             }
           }
         })
       }, 1000) // 延迟1秒显示，避免与小程序启动冲突
+    } else {
+      // 已有用户信息，设置到全局状态
+      this.globalData.userInfo = userInfo
+      this.globalData.hasUserInfo = true
     }
   },
   

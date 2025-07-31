@@ -48,7 +48,7 @@ Page({
             content: data.post.content,
             author: data.post.author_nickname || data.post.author,
             avatar: data.post.author_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-            createTime: this.formatTime(data.post.created_at),
+            createTime: data.post.created_at,
             images: this.parseImages(data.post.images),
             likes: data.post.likes_count || 0,
             comments: data.post.comments_count || 0,
@@ -96,7 +96,7 @@ Page({
             content: comment.content,
             author: comment.user_nickname || comment.author,
             avatar: comment.user_avatar || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
-            createTime: this.formatTime(comment.created_at)
+            createTime: comment.created_at
           }))
           
           this.setData({
@@ -218,6 +218,7 @@ Page({
   // 通过API提交评论
   submitCommentAPI() {
     const app = getApp()
+    const userId = this.data.userInfo.id || 1 // 模拟用户ID
     
     wx.showLoading({
       title: '发送中...'
@@ -227,7 +228,7 @@ Page({
       url: `/api/posts/${this.data.post.id}/comments`,
       method: 'POST',
       data: {
-        user_id: 1, // 模拟用户ID
+        user_id: userId, // 模拟用户ID
         content: this.data.replyText
       },
       success: (data) => {
@@ -379,43 +380,4 @@ Page({
       return []
     }
   },
-
-  // 格式化时间
-  formatTime(timestamp) {
-    if (!timestamp) return ''
-    
-    try {
-      // 处理各种时间格式，确保iOS兼容
-      let date
-      if (typeof timestamp === 'string') {
-        // 处理GMT格式时间，转换为iOS支持的格式
-        if (timestamp.includes('GMT')) {
-          date = new Date(timestamp.replace(/GMT.*$/, '').trim())
-        } else {
-          // 将时间格式标准化为iOS支持的格式
-          const isoString = timestamp.replace(/\s+/, 'T').replace(/\s+GMT.*$/, '')
-          date = new Date(isoString)
-        }
-      } else {
-        date = new Date(timestamp)
-      }
-      
-      // 检查日期是否有效
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid date:', timestamp)
-        return ''
-      }
-      
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hour = String(date.getHours()).padStart(2, '0')
-      const minute = String(date.getMinutes()).padStart(2, '0')
-      
-      return `${year}-${month}-${day} ${hour}:${minute}`
-    } catch (e) {
-      console.error('时间格式化错误:', e, timestamp)
-      return ''
-    }
-  }
 })
