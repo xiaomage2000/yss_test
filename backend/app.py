@@ -816,5 +816,120 @@ def health_check():
         'timestamp': datetime.now().isoformat()
     })
 
+@app.route('/api/posts/stats', methods=['GET'])
+def get_posts_stats():
+    """获取帖子统计信息"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': '数据库连接失败'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 获取帖子总数
+        cursor.execute("SELECT COUNT(*) as total FROM posts WHERE status = 1")
+        total_posts = cursor.fetchone()['total']
+        
+        # 获取今日新增帖子数
+        cursor.execute("""
+            SELECT COUNT(*) as today 
+            FROM posts 
+            WHERE status = 1 AND DATE(created_at) = CURDATE()
+        """)
+        today_posts = cursor.fetchone()['today']
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_posts': total_posts,
+                'today_posts': today_posts
+            }
+        })
+        
+    except Exception as e:
+        print(f"获取帖子统计失败: {e}")
+        return jsonify({'error': '获取帖子统计失败'}), 500
+
+@app.route('/api/user/check', methods=['POST'])
+def check_user_exists():
+    """检查用户是否存在"""
+    try:
+        data = request.get_json()
+        code = data.get('code')
+        
+        if not code:
+            return jsonify({'error': '登录code不能为空'}), 400
+        
+        # 调用微信API获取openid
+        wx_url = f"https://api.weixin.qq.com/sns/jscode2session"
+        wx_params = {
+            'appid': WECHAT_CONFIG['app_id'],
+            'secret': WECHAT_CONFIG['app_secret'],
+            'js_code': code,
+            'grant_type': 'authorization_code'
+        }
+        
+        try:
+            wx_response = requests.get(wx_url, params=wx_params)
+            wx_data = wx_response.json()
+            
+            if 'errcode' in wx_data:
+                print(f"微信登录失败: {wx_data}")
+                # 开发环境使用模拟数据
+                openid = f"mock_openid_{hash(code) % 10000}"
+            else:
+                openid = wx_data.get('openid')
+                
+        except Exception as e:
+            print(f"调用微信API失败: {e}")
+            # 开发环境使用模拟数据
+            openid = f"mock_openid_{hash(code) % 10000}"
+        
+        if not openid:
+            return jsonify({'error': '获取用户信息失败'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': '数据库连接失败'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 查询用户是否存在
+        cursor.execute("SELECT * FROM users WHERE openid = %s", (openid,))
+        user = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+        
+        if user:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'exists': True,
+                    'user': {
+                        'id': user['id'],
+                        'openid': user['openid'],
+                        'nickname': user['nickname'],
+                        'avatar_url': user['avatar_url'],
+                        'score': user['score']
+                    }
+                }
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'exists': False,
+                    'openid': openid
+                }
+            })
+        
+    except Exception as e:
+        print(f"检查用户失败: {e}")
+        return jsonify({'error': '检查用户失败'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

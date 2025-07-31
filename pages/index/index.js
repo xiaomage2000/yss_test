@@ -18,7 +18,7 @@ Page({
   },
   
   onLoad() {
-    // 获取用户信息
+    // 获取用户信息（先获取用户信息再获取积分）
     this.getUserInfo()
     // 获取用户积分
     this.getUserScore()
@@ -28,8 +28,8 @@ Page({
   
   onShow() {
     // 每次显示页面时更新积分和用户信息
-    this.getUserScore()
     this.getUserInfo()
+    this.getUserScore()
     
     // 检查全局用户信息更新事件
     if (wx.$eventBus && wx.$eventBus.userInfoUpdated) {
@@ -41,31 +41,61 @@ Page({
   // 获取用户信息
   getUserInfo() {
     const userInfo = wx.getStorageSync('userInfo')
-    if (userInfo) {
+    const app = getApp()
+    
+    // 优先使用全局状态
+    if (app.globalData.hasUserInfo && app.globalData.userInfo) {
+      this.setData({
+        userInfo: app.globalData.userInfo,
+        hasUserInfo: true
+      })
+    } else if (userInfo) {
+      // 如果全局状态没有，但本地存储有，则使用本地存储
       this.setData({
         userInfo: userInfo,
         hasUserInfo: true
       })
+      // 同时更新全局状态
+      app.globalData.userInfo = userInfo
+      app.globalData.hasUserInfo = true
+    } else {
+      // 都没有，设置为未登录状态
+      this.setData({
+        userInfo: null,
+        hasUserInfo: false
+      })
+      app.globalData.hasUserInfo = false
     }
   },
   
   // 获取用户积分
   getUserScore() {
     const app = getApp()
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    // 如果用户未登录，积分显示为0
+    if (!userInfo || !userInfo.id) {
+      this.setData({
+        userScore: 0
+      })
+      return
+    }
     
     app.request({
-      url: '/api/user/1/score', // 模拟用户ID
+      url: `/api/user/${userInfo.id}/score`, // 使用真实用户ID
       method: 'GET',
       success: (data) => {
-        if (data.success && data.data) {
+        if (data.success) {
           this.setData({
-            userScore: data.data.total_score
+            userScore: data.score
           })
+          // 同时更新本地存储
+          wx.setStorageSync('userScore', data.score)
         }
       },
       fail: (err) => {
         // API失败时使用本地存储的积分
-        const userScore = wx.getStorageSync('userScore') || 100
+        const userScore = wx.getStorageSync('userScore') || 0
         this.setData({
           userScore: userScore
         })
@@ -75,32 +105,70 @@ Page({
   
   // 登录获取用户信息
   login() {
-    // 获取登录凭证后跳转到用户信息填写页面
-    wx.login({
-      success: (loginRes) => {
-        if (loginRes.code) {
-          wx.navigateTo({
-            url: `/pages/userProfile/userProfile?code=${loginRes.code}`
-          })
-        } else {
-          wx.showToast({
-            title: '获取登录凭证失败',
-            icon: 'error'
+    // 检查用户是否已经登录
+    const userInfo = wx.getStorageSync('userInfo')
+    if (userInfo) {
+      wx.showToast({
+        title: '您已登录',
+        icon: 'success'
+      })
+      return
+    }
+    
+    // 引导用户登录
+    wx.showModal({
+      title: '需要登录',
+      content: '请先完善您的个人信息后再使用此功能',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 获取登录凭证后跳转到用户信息填写页面
+          wx.login({
+            success: (loginRes) => {
+              if (loginRes.code) {
+                wx.navigateTo({
+                  url: `/pages/userProfile/userProfile?code=${loginRes.code}`
+                })
+              } else {
+                wx.showToast({
+                  title: '获取登录凭证失败',
+                  icon: 'error'
+                })
+              }
+            },
+            fail: (err) => {
+              console.log('微信登录失败:', err)
+              wx.showToast({
+                title: '微信登录失败',
+                icon: 'error'
+              })
+            }
           })
         }
-      },
-      fail: (err) => {
-        console.log('微信登录失败:', err)
-        wx.showToast({
-          title: '微信登录失败',
-          icon: 'error'
-        })
       }
     })
   },
   
   // 拍照上传
   takePhoto() {
+    // 检查用户是否已登录
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showModal({
+        title: '需要登录',
+        content: '请先完善您的个人信息后再使用人参识别功能',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            this.login()
+          }
+        }
+      })
+      return
+    }
+    
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],

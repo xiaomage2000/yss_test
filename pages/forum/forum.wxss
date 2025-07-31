@@ -228,3 +228,25 @@ page {
   border-radius: 20rpx;
   margin-top: 20rpx;
 }
+
+/* 发布按钮 */
+.fab {
+  position: fixed;
+  right: 30rpx;
+  bottom: 120rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: #13A5F0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 20rpx rgba(19, 165, 240, 0.4);
+  z-index: 999;
+}
+
+.fab-icon {
+  font-size: 48rpx;
+  color: white;
+  font-weight: bold;
+}

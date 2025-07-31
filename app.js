@@ -17,11 +17,8 @@ App({
         // 发送 res.code 到后台换取 openId, sessionKey, unionId
         console.log('登录成功，code:', res.code)
         
-        // 模拟登录成功后的处理
-        this.checkUserInfo()
-        
-        // 自动获取用户信息
-        this.autoGetUserInfo()
+        // 检查用户是否已经完成信息设置
+        this.checkAndHandleUserLogin(res.code)
       },
       fail: err => {
         console.error('登录失败:', err)
@@ -29,53 +26,81 @@ App({
     })
   },
   
-  // 自动获取用户信息
-  autoGetUserInfo() {
-    const userInfo = wx.getStorageSync('userInfo')
-    if (!userInfo) {
-      // 如果没有用户信息，主动请求用户授权
-      setTimeout(() => {
-        wx.showModal({
-          title: '欢迎使用人参识别助手',
-          content: '为了提供更好的服务，需要完善您的个人信息。点击"确定"进行设置。',
-          confirmText: '确定',
-          cancelText: '稍后',
-          success: (res) => {
-            if (res.confirm) {
-              // 获取登录凭证后跳转到用户信息填写页面
-              wx.login({
-                success: (loginRes) => {
-                  if (loginRes.code) {
-                    wx.navigateTo({
-                      url: `/pages/userProfile/userProfile?code=${loginRes.code}`
-                    })
-                  }
-                }
-              })
+  // 检查和处理用户登录
+  checkAndHandleUserLogin(code) {
+    // 调用后端检查用户是否存在
+    this.request({
+      url: '/api/user/check',
+      method: 'POST',
+      data: { code: code },
+      success: (res) => {
+        if (res.success) {
+          if (res.data.exists) {
+            // 用户已存在，直接登录
+            const userInfo = {
+              id: res.data.user.id,
+              nickName: res.data.user.nickname,
+              avatarUrl: res.data.user.avatar_url,
+              score: res.data.user.score
             }
+            
+            wx.setStorageSync('userInfo', userInfo)
+            wx.setStorageSync('userScore', res.data.user.score)
+            this.globalData.userInfo = userInfo
+            this.globalData.hasUserInfo = true
+            console.log('用户已存在，自动登录成功')
+            
+            // 通知所有页面更新用户信息
+            this.notifyUserInfoUpdate()
+          } else {
+            // 新用户，显示欢迎弹窗
+            this.showWelcomeModal(code)
           }
-        })
-      }, 1000) // 延迟1秒显示，避免与小程序启动冲突
-    } else {
-      // 已有用户信息，设置到全局状态
-      this.globalData.userInfo = userInfo
-      this.globalData.hasUserInfo = true
-    }
+        } else {
+          // API调用失败，显示欢迎弹窗
+          this.showWelcomeModal(code)
+        }
+      },
+      fail: (err) => {
+        console.error('检查用户失败:', err)
+        // 网络失败，显示欢迎弹窗
+        this.showWelcomeModal(code)
+      }
+    })
   },
   
-  // 检查用户信息
+  // 显示欢迎弹窗
+  showWelcomeModal(code) {
+    setTimeout(() => {
+      wx.showModal({
+        title: '欢迎使用人参识别助手',
+        content: '为了提供更好的服务，需要完善您的个人信息。',
+        confirmText: '确定',
+        cancelText: '稍后',
+        success: (res) => {
+          if (res.confirm) {
+            // 用户点击确定，跳转到用户信息填写页面
+            wx.navigateTo({
+              url: `/pages/userProfile/userProfile?code=${code}`
+            })
+          } else {
+            // 用户点击稍后，取消登录
+            console.log('用户取消登录')
+            this.globalData.hasUserInfo = false
+          }
+        }
+      })
+    }, 1000) // 延迟1秒显示，避免与小程序启动冲突
+  },
+  
+  // 检查用户信息（保留为兼容性）
   checkUserInfo() {
     const userInfo = wx.getStorageSync('userInfo')
     const userScore = wx.getStorageSync('userScore')
     
-    if (!userInfo) {
-      // 新用户，初始化积分
-      wx.setStorageSync('userScore', 100)
-      console.log('新用户注册，获得100积分')
-    }
-    
     this.globalData.userInfo = userInfo
     this.globalData.userScore = userScore || 100
+    this.globalData.hasUserInfo = !!userInfo
   },
   
   // 获取用户信息
@@ -173,6 +198,29 @@ App({
         if (fail) fail(err)
       }
     })
+  },
+  
+  // 通知所有页面用户信息已更新
+  notifyUserInfoUpdate() {
+    // 创建一个简单的事件总线
+    if (!wx.$eventBus) {
+      wx.$eventBus = {}
+    }
+    wx.$eventBus.userInfoUpdated = true
+    
+    // 获取当前页面栈
+    const pages = getCurrentPages()
+    const currentPage = pages[pages.length - 1]
+    
+    // 如果当前页面有 getUserInfo 方法，就调用它
+    if (currentPage && typeof currentPage.getUserInfo === 'function') {
+      currentPage.getUserInfo()
+    }
+    
+    // 如果当前页面有 getUserScore 方法，就调用它  
+    if (currentPage && typeof currentPage.getUserScore === 'function') {
+      currentPage.getUserScore()
+    }
   },
   
   globalData: {

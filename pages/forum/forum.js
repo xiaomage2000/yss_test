@@ -7,6 +7,7 @@ Page({
     userInfo: null,
     userScore: 100,
     myPostsCount: 0,
+    totalPostsCount: 0, // 帖子总数
     currentPage: 1,
     pageSize: 5,
     hasMore: true,
@@ -16,6 +17,7 @@ Page({
   onLoad() {
     this.getUserInfo()
     this.loadPosts()
+    this.loadPostsStats() // 加载帖子统计
   },
   
   onShow() {
@@ -23,6 +25,7 @@ Page({
     this.loadPosts()
     this.getUserScore()
     this.updateMyPostsCount()
+    this.loadPostsStats() // 加载帖子统计
   },
   
   // 获取用户信息
@@ -38,20 +41,31 @@ Page({
   // 获取用户积分
   getUserScore() {
     const app = getApp()
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    // 如果用户未登录，积分显示为0
+    if (!userInfo || !userInfo.id) {
+      this.setData({
+        userScore: 0
+      })
+      return
+    }
     
     app.request({
-      url: '/api/user/1/score', // 模拟用户ID
+      url: `/api/user/${userInfo.id}/score`, // 使用真实用户ID
       method: 'GET',
       success: (data) => {
-        if (data.success && data.data) {
+        if (data.success) {
           this.setData({
-            userScore: data.data.total_score
+            userScore: data.score
           })
+          // 同时更新本地存储
+          wx.setStorageSync('userScore', data.score)
         }
       },
       fail: (err) => {
         // API失败时使用本地存储的积分
-        const userScore = wx.getStorageSync('userScore') || 100
+        const userScore = wx.getStorageSync('userScore') || 0
         this.setData({
           userScore: userScore
         })
@@ -155,18 +169,34 @@ Page({
 
   // 发布新帖子
   createPost() {
-    const app = getApp()
-    app.checkUserLogin((isLoggedIn, userInfo) => {
-      if (isLoggedIn) {
-        wx.navigateTo({
-          url: '/pages/createPost/createPost'
-        })
-      } else {
-        wx.showToast({
-          title: '未登录，无法发帖',
-          icon: 'error'
-        })
-      }
+    // 检查用户是否已登录
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showModal({
+        title: '需要登录',
+        content: '请先完善您的个人信息后再发布帖子',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            // 获取登录凭证后跳转到用户信息填写页面
+            wx.login({
+              success: (loginRes) => {
+                if (loginRes.code) {
+                  wx.navigateTo({
+                    url: `/pages/userProfile/userProfile?code=${loginRes.code}`
+                  })
+                }
+              }
+            })
+          }
+        }
+      })
+      return
+    }
+    
+    wx.navigateTo({
+      url: '/pages/createPost/createPost'
     })
   },
   
@@ -180,32 +210,41 @@ Page({
   
   // 点赞帖子
   likePost(e) {
-    const app = getApp()
-    app.checkUserLogin((isLoggedIn, userInfo) => {
-      if (isLoggedIn) {
-        const index = e.currentTarget.dataset.index
-        const post = this.data.posts[index]
-        
-        // 调用API点赞
-        this.likePostAPI(post.id, index, !post.liked)
-      } else {
-        wx.showToast({
-          title: '未登录，无法点赞',
-          icon: 'error'
-        })
-      }
-    })
+    // 检查用户是否已登录
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'error'
+      })
+      return
+    }
+    
+    const index = e.currentTarget.dataset.index
+    const post = this.data.posts[index]
+    
+    // 调用API点赞
+    this.likePostAPI(post.id, index, !post.liked)
   },
 
   // 通过API点赞
   likePostAPI(postId, index, isLike) {
     const app = getApp()
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    if (!userInfo || !userInfo.id) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'error'
+      })
+      return
+    }
     
     app.request({
       url: `/api/posts/${postId}/like`,
       method: 'POST',
       data: {
-        user_id: 1, // 模拟用户ID
+        user_id: userInfo.id, // 使用真实用户ID
         action: isLike ? 'like' : 'unlike'
       },
       success: (data) => {
@@ -312,38 +351,43 @@ Page({
   // 更新我的帖子数量
   updateMyPostsCount() {
     const app = getApp()
-    app.checkUserLogin((isLoggedIn, userInfo) => {
-      if (isLoggedIn) {
-        // 调用API获取用户帖子数量
-        app.request({
-          url: '/api/user/posts',
-          method: 'GET',
-          data: { page: 1, limit: 1 }, // 只需要获取总数
-          success: (res) => {
-            if (res.data.success && res.data.pagination) {
-              this.setData({
-                myPostsCount: res.data.pagination.total
-              })
-            } else {
-              // 如果API调用失败，使用本地过滤作为备选
-              const myPosts = this.data.posts.filter(post => post.author === (userInfo.nickName || userInfo.nickname))
-              this.setData({
-                myPostsCount: myPosts.length
-              })
-            }
-          },
-          fail: (err) => {
-            console.error('获取用户帖子数量失败:', err)
-            // API调用失败时，使用本地过滤作为备选
-            const myPosts = this.data.posts.filter(post => post.author === (userInfo.nickName || userInfo.nickname))
-            this.setData({
-              myPostsCount: myPosts.length
-            })
-          }
-        })
-      } else {
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    if (!userInfo || !userInfo.id) {
+      this.setData({
+        myPostsCount: 0
+      })
+      return
+    }
+    
+    // 调用API获取用户帖子数量
+    app.request({
+      url: '/api/user/posts',
+      method: 'GET',
+      data: { 
+        user_id: userInfo.id,
+        page: 1, 
+        limit: 1 
+      }, // 只需要获取总数
+      success: (res) => {
+        if (res.success && res.pagination) {
+          this.setData({
+            myPostsCount: res.pagination.total
+          })
+        } else {
+          // 如果API调用失败，使用本地过滤作为备选
+          const myPosts = this.data.posts.filter(post => post.author === (userInfo.nickName || userInfo.nickname))
+          this.setData({
+            myPostsCount: myPosts.length
+          })
+        }
+      },
+      fail: (err) => {
+        console.error('获取用户帖子数量失败:', err)
+        // API调用失败时，使用本地过滤作为备选
+        const myPosts = this.data.posts.filter(post => post.author === (userInfo.nickName || userInfo.nickname))
         this.setData({
-          myPostsCount: 0
+          myPostsCount: myPosts.length
         })
       }
     })
@@ -351,18 +395,17 @@ Page({
   
   // 查看我的帖子
   viewMyPosts() {
-    const app = getApp()
-    app.checkUserLogin((isLoggedIn, userInfo) => {
-      if (isLoggedIn) {
-        wx.navigateTo({
-          url: '/pages/myPosts/myPosts'
-        })
-      } else {
-        wx.showToast({
-          title: '请先登录',
-          icon: 'error'
-        })
-      }
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'error'
+      })
+      return
+    }
+    
+    wx.navigateTo({
+      url: '/pages/myPosts/myPosts'
     })
   },
 
@@ -417,5 +460,29 @@ Page({
       }
       return []
     }
+  },
+
+  // 获取帖子统计信息
+  loadPostsStats() {
+    const app = getApp()
+    
+    app.request({
+      url: '/api/posts/stats',
+      method: 'GET',
+      success: (data) => {
+        if (data.success && data.data) {
+          this.setData({
+            totalPostsCount: data.data.total_posts
+          })
+        }
+      },
+      fail: (err) => {
+        console.log('获取帖子统计失败:', err)
+        // 失败时使用当前帖子数量作为备选
+        this.setData({
+          totalPostsCount: this.data.posts.length
+        })
+      }
+    })
   },
 })

@@ -3,7 +3,7 @@
   <!-- 顶部统计信息 -->
   <view class="stats-header">
     <view class="stat-item">
-      <text class="stat-number">{{posts.length}}</text>
+      <text class="stat-number">{{totalPostsCount}}</text>
       <text class="stat-label">帖子总数</text>
     </view>
     <view class="stat-item" bindtap="viewMyPosts">

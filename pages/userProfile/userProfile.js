@@ -113,79 +113,64 @@ Page({
   performLogin(nickname, avatarUrl) {
     const app = getApp()
     
-    // 获取登录凭证
-    wx.login({
-      success: (loginRes) => {
-        if (loginRes.code) {
-          const userInfo = {
-            nickName: nickname,
-            avatarUrl: avatarUrl
+    const userInfo = {
+      nickName: nickname,
+      avatarUrl: avatarUrl
+    }
+    
+    // 调用后端登录接口
+    app.request({
+      url: '/api/user/login',
+      method: 'POST',
+      data: {
+        code: this.data.loginCode,
+        userInfo: userInfo
+      },
+      success: (res) => {
+        wx.hideLoading()
+        
+        if (res.success) {
+          const userData = res.user
+          const finalUserInfo = {
+            id: userData.id,
+            nickName: userData.nickname || nickname,
+            avatarUrl: userData.avatar_url || avatarUrl
           }
           
-          // 调用后端登录接口
-          app.request({
-            url: '/api/user/login',
-            method: 'POST',
-            data: {
-              code: loginRes.code,
-              userInfo: userInfo
-            },
-            success: (res) => {
-              wx.hideLoading()
-              
-              if (res.success) {
-                const userData = res.user
-                const finalUserInfo = {
-                  id: userData.id,
-                  nickName: userData.nickname || nickname,
-                  avatarUrl: userData.avatar_url || avatarUrl
-                }
-                
-                // 保存用户信息
-                wx.setStorageSync('userInfo', finalUserInfo)
-                app.globalData.userInfo = finalUserInfo
-                app.globalData.hasUserInfo = true
-                
-                wx.showToast({
-                  title: '设置成功',
-                  icon: 'success'
-                })
-                
-                // 跳转到首页
-                setTimeout(() => {
-                  wx.switchTab({
-                    url: '/pages/index/index'
-                  })
-                }, 1500)
-              } else {
-                wx.showToast({
-                  title: res.data.error || '登录失败',
-                  icon: 'error'
-                })
-              }
-            },
-            fail: (err) => {
-              wx.hideLoading()
-              console.error('登录接口调用失败:', err)
-              wx.showToast({
-                title: '登录失败',
-                icon: 'error'
-              })
-            }
-          })
-        } else {
-          wx.hideLoading()
+          // 保存用户信息
+          wx.setStorageSync('userInfo', finalUserInfo)
+          wx.setStorageSync('userScore', userData.score || 100)
+          app.globalData.userInfo = finalUserInfo
+          app.globalData.hasUserInfo = true
+          
+          // 通知所有页面更新用户信息
+          if (typeof app.notifyUserInfoUpdate === 'function') {
+            app.notifyUserInfoUpdate()
+          }
+          
           wx.showToast({
-            title: '获取登录凭证失败',
+            title: '设置成功',
+            icon: 'success'
+          })
+          
+          // 跳转到首页
+          setTimeout(() => {
+            wx.switchTab({
+              url: '/pages/index/index'
+            })
+          }, 1500)
+        } else {
+          wx.showToast({
+            title: res.error || '登录失败',
             icon: 'error'
           })
         }
       },
       fail: (err) => {
         wx.hideLoading()
-        console.log('微信登录失败:', err)
+        console.error('登录接口调用失败:', err)
         wx.showToast({
-          title: '微信登录失败',
+          title: '登录失败',
           icon: 'error'
         })
       }
