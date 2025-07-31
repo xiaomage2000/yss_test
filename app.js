@@ -126,19 +126,32 @@ App({
     return newScore
   },
   
-  // API请求封装
+  // 网络请求封装
   request(options) {
-    const { url, method = 'GET', data = {}, success, fail } = options
+    const baseUrl = this.globalData.apiBase
+    const url = options.url.startsWith('http') ? options.url : `${baseUrl}${options.url}`
     
-    const requestUrl = url.startsWith('http') ? url : `${this.globalData.apiBase}${url}`
+    // 获取当前用户信息，添加到请求头
+    const userInfo = wx.getStorageSync('userInfo')
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+    
+    // 如果有用户信息，添加user-id到请求头
+    if (userInfo && userInfo.id) {
+      headers['user-id'] = userInfo.id.toString()
+    } else {
+      // 开发阶段使用默认用户ID
+      headers['user-id'] = '1'
+    }
+    
+    const { success, fail, ...otherOptions } = options
     
     wx.request({
-      url: requestUrl,
-      method: method,
-      data: data,
-      header: {
-        'Content-Type': 'application/json'
-      },
+      ...otherOptions,
+      url: url,
+      header: headers,
       success: (res) => {
         if (res.statusCode === 200) {
           if (success) success(res.data)

@@ -330,6 +330,73 @@ def get_posts():
         print(f"获取帖子失败: {e}")
         return jsonify({'error': '获取帖子失败'}), 500
 
+@app.route('/api/user/posts', methods=['GET'])
+def get_current_user_posts():
+    """获取当前用户的帖子列表"""
+    try:
+        # 从请求头或参数中获取用户ID（简化版本，实际应该从JWT token中获取）
+        user_id = request.headers.get('user-id') or request.args.get('user_id')
+        
+        if not user_id:
+            # 如果没有用户ID，尝试从模拟的session中获取
+            # 这里简化处理，实际应该从真实的用户认证中获取
+            return jsonify({'error': '用户未登录'}), 401
+        
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            # 如果转换失败，使用默认用户ID (开发阶段)
+            user_id = 1
+        
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        offset = (page - 1) * limit
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': '数据库连接失败'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 获取用户帖子列表
+        cursor.execute("""
+            SELECT p.*, u.nickname as author_nickname, u.avatar_url as author_avatar
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = %s AND p.status = 1
+            ORDER BY p.created_at DESC
+            LIMIT %s OFFSET %s
+        """, (user_id, limit, offset))
+        
+        posts = cursor.fetchall()
+        
+        # 格式化时间为iOS兼容格式
+        for post in posts:
+            if 'created_at' in post and post['created_at']:
+                post['created_at'] = format_datetime_for_ios(post['created_at'])
+        
+        # 获取总数
+        cursor.execute("SELECT COUNT(*) as total FROM posts WHERE user_id = %s AND status = 1", (user_id,))
+        total = cursor.fetchone()['total']
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'data': posts,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        })
+        
+    except Exception as e:
+        print(f"获取当前用户帖子失败: {e}")
+        return jsonify({'error': '获取用户帖子失败'}), 500
+
 @app.route('/api/users/<int:user_id>/posts', methods=['GET'])
 def get_user_posts(user_id):
     """获取用户的帖子列表"""
