@@ -104,39 +104,11 @@ def user_login():
     """用户登录"""
     try:
         data = request.get_json()
-        code = data.get('code')
+        openid = data.get('openid')
         user_info = data.get('userInfo', {})
         
-        if not code:
-            return jsonify({'error': '登录code不能为空'}), 400
-        
-        # 调用微信API获取openid
-        wx_url = f"https://api.weixin.qq.com/sns/jscode2session"
-        wx_params = {
-            'appid': WECHAT_CONFIG['app_id'],
-            'secret': WECHAT_CONFIG['app_secret'],
-            'js_code': code,
-            'grant_type': 'authorization_code'
-        }
-        
-        try:
-            wx_response = requests.get(wx_url, params=wx_params)
-            wx_data = wx_response.json()
-            
-            if 'errcode' in wx_data:
-                print(f"微信登录失败: {wx_data}")
-                # 开发环境使用模拟数据
-                openid = f"mock_openid_{hash(code) % 10000}"
-            else:
-                openid = wx_data.get('openid')
-                
-        except Exception as e:
-            print(f"调用微信API失败: {e}")
-            # 开发环境使用模拟数据
-            openid = f"mock_openid_{hash(code) % 10000}"
-        
         if not openid:
-            return jsonify({'error': '获取用户信息失败'}), 400
+            return jsonify({'error': 'openid不能为空'}), 400
         
         connection = get_db_connection()
         if not connection:
@@ -878,15 +850,13 @@ def check_user_exists():
             
             if 'errcode' in wx_data:
                 print(f"微信登录失败: {wx_data}")
-                # 开发环境使用模拟数据
-                openid = f"mock_openid_{hash(code) % 10000}"
+                return jsonify({'error': '微信登录失败，请重试'}), 400
             else:
                 openid = wx_data.get('openid')
                 
         except Exception as e:
             print(f"调用微信API失败: {e}")
-            # 开发环境使用模拟数据
-            openid = f"mock_openid_{hash(code) % 10000}"
+            return jsonify({'error': '调用微信API失败，请重试'}), 500
         
         if not openid:
             return jsonify({'error': '获取用户信息失败'}), 400

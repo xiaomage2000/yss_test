@@ -17,6 +17,17 @@ Page({
     this.getUserInfo()
   },
   
+  onShow() {
+    // 页面显示时更新用户信息
+    this.getUserInfo()
+    
+    // 检查全局用户信息更新事件
+    if (wx.$eventBus && wx.$eventBus.userInfoUpdated) {
+      this.getUserInfo()
+      wx.$eventBus.userInfoUpdated = false
+    }
+  },
+  
   // 获取用户信息
   getUserInfo() {
     const userInfo = wx.getStorageSync('userInfo')
@@ -112,29 +123,66 @@ Page({
   
   // 点赞帖子
   likePost() {
-    const app = getApp()
-    app.checkUserLogin((isLoggedIn, userInfo) => {
-      if (isLoggedIn) {
-        const post = this.data.post
-        this.likePostAPI(post.id, !post.liked)
-      } else {
-        wx.showToast({
-          title: '未登录，无法点赞',
-          icon: 'error'
-        })
-      }
-    })
+    // 检查用户是否已登录
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showModal({
+        title: '需要登录',
+        content: '请先完善您的个人信息后再点赞',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            // 获取登录凭证后调用检查用户接口
+            wx.login({
+              success: (loginRes) => {
+                if (loginRes.code) {
+                  // 调用全局的检查用户登录方法
+                  const app = getApp()
+                  app.checkAndHandleUserLogin(loginRes.code)
+                } else {
+                  wx.showToast({
+                    title: '获取登录凭证失败',
+                    icon: 'error'
+                  })
+                }
+              },
+              fail: (err) => {
+                console.log('微信登录失败:', err)
+                wx.showToast({
+                  title: '微信登录失败',
+                  icon: 'error'
+                })
+              }
+            })
+          }
+        }
+      })
+      return
+    }
+    
+    const post = this.data.post
+    this.likePostAPI(post.id, !post.liked)
   },
 
   // 通过API点赞
   likePostAPI(postId, isLike) {
     const app = getApp()
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    if (!userInfo || !userInfo.id) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'error'  
+      })
+      return
+    }
     
     app.request({
       url: `/api/posts/${postId}/like`,
       method: 'POST',
       data: {
-        user_id: 1, // 模拟用户ID
+        user_id: userInfo.id, // 使用真实用户ID
         action: isLike ? 'like' : 'unlike'
       },
       success: (data) => {
@@ -172,18 +220,46 @@ Page({
   
   // 显示回复输入框
   showReply() {
-    const app = getApp()
-    app.checkUserLogin((isLoggedIn, userInfo) => {
-      if (isLoggedIn) {
-        this.setData({
-          showReplyInput: true
-        })
-      } else {
-        wx.showToast({
-          title: '未登录，无法回复',
-          icon: 'error'
-        })
-      }
+    // 检查用户是否已登录
+    const userInfo = wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showModal({
+        title: '需要登录',
+        content: '请先完善您的个人信息后再评论',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            // 获取登录凭证后调用检查用户接口
+            wx.login({
+              success: (loginRes) => {
+                if (loginRes.code) {
+                  // 调用全局的检查用户登录方法
+                  const app = getApp()
+                  app.checkAndHandleUserLogin(loginRes.code)
+                } else {
+                  wx.showToast({
+                    title: '获取登录凭证失败',
+                    icon: 'error'
+                  })
+                }
+              },
+              fail: (err) => {
+                console.log('微信登录失败:', err)
+                wx.showToast({
+                  title: '微信登录失败',
+                  icon: 'error'
+                })
+              }
+            })
+          }
+        }
+      })
+      return
+    }
+    
+    this.setData({
+      showReplyInput: true
     })
   },
   
@@ -218,7 +294,15 @@ Page({
   // 通过API提交评论
   submitCommentAPI() {
     const app = getApp()
-    const userId = this.data.userInfo.id || 1 // 模拟用户ID
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    if (!userInfo || !userInfo.id) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'error'
+      })
+      return
+    }
     
     wx.showLoading({
       title: '发送中...'
@@ -228,7 +312,7 @@ Page({
       url: `/api/posts/${this.data.post.id}/comments`,
       method: 'POST',
       data: {
-        user_id: userId, // 模拟用户ID
+        user_id: userInfo.id, // 使用真实用户ID
         content: this.data.replyText
       },
       success: (data) => {

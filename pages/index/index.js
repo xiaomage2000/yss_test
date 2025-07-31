@@ -123,13 +123,13 @@ Page({
       cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
-          // 获取登录凭证后跳转到用户信息填写页面
+          // 获取登录凭证后调用检查用户接口
           wx.login({
             success: (loginRes) => {
               if (loginRes.code) {
-                wx.navigateTo({
-                  url: `/pages/userProfile/userProfile?code=${loginRes.code}`
-                })
+                // 调用全局的检查用户登录方法
+                const app = getApp()
+                app.checkAndHandleUserLogin(loginRes.code)
               } else {
                 wx.showToast({
                   title: '获取登录凭证失败',

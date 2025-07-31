@@ -53,24 +53,25 @@ App({
             // 通知所有页面更新用户信息
             this.notifyUserInfoUpdate()
           } else {
-            // 新用户，显示欢迎弹窗
-            this.showWelcomeModal(code)
+            // 新用户，保存 openid 并显示欢迎弹窗
+            wx.setStorageSync('tempOpenid', res.data.openid)
+            this.showWelcomeModal(res.data.openid)
           }
         } else {
-          // API调用失败，显示欢迎弹窗
+          // API调用失败，显示欢迎弹窗（使用备用方案）
           this.showWelcomeModal(code)
         }
       },
       fail: (err) => {
         console.error('检查用户失败:', err)
-        // 网络失败，显示欢迎弹窗
+        // 网络失败，显示欢迎弹窗（使用备用方案）
         this.showWelcomeModal(code)
       }
     })
   },
   
   // 显示欢迎弹窗
-  showWelcomeModal(code) {
+  showWelcomeModal(openidOrCode) {
     setTimeout(() => {
       wx.showModal({
         title: '欢迎使用人参识别助手',
@@ -81,12 +82,13 @@ App({
           if (res.confirm) {
             // 用户点击确定，跳转到用户信息填写页面
             wx.navigateTo({
-              url: `/pages/userProfile/userProfile?code=${code}`
+              url: `/pages/userProfile/userProfile?openid=${openidOrCode}`
             })
           } else {
             // 用户点击稍后，取消登录
             console.log('用户取消登录')
             this.globalData.hasUserInfo = false
+            wx.removeStorageSync('tempOpenid')
           }
         }
       })

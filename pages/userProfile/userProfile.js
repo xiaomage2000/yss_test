@@ -3,15 +3,27 @@ Page({
     avatarUrl: 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0',
     nickname: '',
     canSubmit: false,
-    loginCode: ''
+    openid: ''
   },
 
   onLoad(options) {
-    // 获取登录code
-    const loginCode = options.code || ''
+    // 获取openid
+    const openid = options.openid || wx.getStorageSync('tempOpenid') || ''
     this.setData({
-      loginCode: loginCode
+      openid: openid
     })
+    
+    if (!openid) {
+      wx.showToast({
+        title: '参数错误',
+        icon: 'error'
+      })
+      setTimeout(() => {
+        wx.switchTab({
+          url: '/pages/index/index'
+        })
+      }, 1500)
+    }
   },
 
   // 选择头像
@@ -113,17 +125,25 @@ Page({
   performLogin(nickname, avatarUrl) {
     const app = getApp()
     
+    if (!this.data.openid) {
+      wx.showToast({
+        title: '登录参数错误',
+        icon: 'error'
+      })
+      return
+    }
+    
     const userInfo = {
       nickName: nickname,
       avatarUrl: avatarUrl
     }
     
-    // 调用后端登录接口
+    // 调用后端登录接口，使用 openid
     app.request({
       url: '/api/user/login',
       method: 'POST',
       data: {
-        code: this.data.loginCode,
+        openid: this.data.openid,
         userInfo: userInfo
       },
       success: (res) => {
@@ -142,6 +162,9 @@ Page({
           wx.setStorageSync('userScore', userData.score || 100)
           app.globalData.userInfo = finalUserInfo
           app.globalData.hasUserInfo = true
+          
+          // 清除临时openid
+          wx.removeStorageSync('tempOpenid')
           
           // 通知所有页面更新用户信息
           if (typeof app.notifyUserInfoUpdate === 'function') {

@@ -84,7 +84,7 @@
 }
 
 .nickname-input:focus {
-  border-color: #4CAF50;
+  border-color: white;
   background-color: #fff;
 }
 
@@ -99,14 +99,14 @@
 .submit-btn {
   width: 100%;
   height: 88rpx;
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  color: white;
+  background: linear-gradient(135deg, #13A5F0, #1890FF);
+  color: white!important;
   border: none;
   border-radius: 44rpx;
   font-size: 36rpx;
   font-weight: 500;
   display: flex;
-  align-items: center;
+  align-items: center; 
   justify-content: center;
 }
 
